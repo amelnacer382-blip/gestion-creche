@@ -1,0 +1,14 @@
+{
+  "name": "creche-facile",
+  "version": "1.0.0",
+  "description": "Système complet de gestion de crèche et micro-crèche",
+  "scripts": {
+    "install:all": "cd backend && bun install && cd ../frontend && bun install",
+    "dev:backend": "cd backend && bun run dev",
+    "dev:frontend": "cd frontend && bun run dev",
+    "build": "cd backend && bun run build && cd ../frontend && bun run build"
+  },
+  "keywords": ["creche", "nursery", "childcare", "management", "react", "express", "sqlite"],
+  "author": "",
+  "license": "MIT"
+}
