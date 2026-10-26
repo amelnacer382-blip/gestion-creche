@@ -11,10 +11,14 @@ import {
   Sparkles,
   Phone,
   ShieldCheck,
-  Filter
+  Filter,
+  Tablet,
+  List,
+  Search,
+  Timer
 } from 'lucide-react';
 import { fetchAttendance, checkIn, checkOut, markAbsence, resetAttendance } from '../api';
-import { AttendanceRecord, Guardian } from '../types';
+import { AttendanceRecord } from '../types';
 
 interface AttendanceViewProps {
   onOpenTransmission: (childId: number) => void;
@@ -24,6 +28,9 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({ onOpenTransmissi
   const [date, setDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
   const [filter, setFilter] = useState<string>('all');
+  const [selectedSection, setSelectedSection] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [viewMode, setViewMode] = useState<'tablet' | 'list'>('tablet');
   const [loading, setLoading] = useState<boolean>(true);
 
   // Check-out modal state
@@ -103,6 +110,20 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({ onOpenTransmissi
     }
   };
 
+  // Helper to calculate elapsed time since arrival
+  const calculateDuration = (arrival?: string | null) => {
+    if (!arrival) return null;
+    const [arrH, arrM] = arrival.split(':').map(Number);
+    const now = new Date();
+    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+    const arrMinutes = arrH * 60 + arrM;
+    const diff = Math.max(0, nowMinutes - arrMinutes);
+    const hours = Math.floor(diff / 60);
+    const minutes = diff % 60;
+    if (hours === 0) return `${minutes} min`;
+    return `${hours}h ${minutes > 0 ? `${minutes}m` : ''}`;
+  };
+
   const counts = {
     all: records.length,
     present: records.filter((r) => r.status === 'present').length,
@@ -111,43 +132,102 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({ onOpenTransmissi
     absent: records.filter((r) => r.status.startsWith('absent')).length
   };
 
+  // Unique sections from records
+  const uniqueSections = Array.from(new Set(records.map((r) => r.section_name)));
+
   const filteredRecords = records.filter((r) => {
-    if (filter === 'present') return r.status === 'present';
-    if (filter === 'expected') return r.status === 'expected';
-    if (filter === 'departed') return r.status === 'departed';
-    if (filter === 'absent') return r.status.startsWith('absent');
+    // Status filter
+    if (filter === 'present' && r.status !== 'present') return false;
+    if (filter === 'expected' && r.status !== 'expected') return false;
+    if (filter === 'departed' && r.status !== 'departed') return false;
+    if (filter === 'absent' && !r.status.startsWith('absent')) return false;
+
+    // Section filter
+    if (selectedSection !== 'all' && r.section_name !== selectedSection) return false;
+
+    // Search query
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      const matchName = `${r.first_name} ${r.last_name}`.toLowerCase().includes(q);
+      if (!matchName) return false;
+    }
+
     return true;
   });
 
   return (
     <div className="space-y-6">
-      {/* Date Bar & Presence Counters */}
+      {/* Top Controls: Date, Search, View Mode Toggle */}
       <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center">
-            <Calendar className="w-5 h-5" />
-          </div>
-          <div>
-            <h2 className="text-base font-extrabold text-slate-900">Registre d'Appel & Pointage</h2>
-            <div className="flex items-center gap-2 mt-0.5">
-              <input
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 px-2.5 py-1 rounded-xl outline-none cursor-pointer"
-              />
-              <span className="text-xs text-slate-400">
-                ({records.length} inscrits attendus)
-              </span>
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center font-bold">
+              <Calendar className="w-5 h-5" />
             </div>
+            <div>
+              <h2 className="text-base font-extrabold text-slate-900">Borne de Pointage & Registre</h2>
+              <div className="flex items-center gap-2 mt-0.5">
+                <input
+                  type="date"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                  className="text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 px-2.5 py-1 rounded-xl outline-none cursor-pointer"
+                />
+                <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/60">
+                  {counts.present} présent{counts.present > 1 ? 's' : ''} en direct
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="relative">
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Rechercher un enfant..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none focus:border-rose-500 w-44"
+            />
           </div>
         </div>
 
-        {/* Filter pills */}
+        {/* View Mode Toggle: Tablet Kiosk Mode vs Compact List */}
+        <div className="flex items-center gap-2 self-end md:self-auto">
+          <div className="bg-slate-100 p-1 rounded-2xl flex items-center gap-1">
+            <button
+              onClick={() => setViewMode('tablet')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                viewMode === 'tablet'
+                  ? 'bg-white text-rose-700 shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Tablet className="w-3.5 h-3.5" />
+              <span>Mode Borne Tactile</span>
+            </button>
+            <button
+              onClick={() => setViewMode('list')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                viewMode === 'list'
+                  ? 'bg-white text-rose-700 shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <List className="w-3.5 h-3.5" />
+              <span>Mode Liste</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Filters Bar: Status pills + Section pills */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-3.5 rounded-2xl border border-slate-200/80 text-xs">
+        {/* Status filters */}
         <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1">
           <button
             onClick={() => setFilter('all')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+            className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-all ${
               filter === 'all' ? 'bg-slate-900 text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
             }`}
           >
@@ -155,7 +235,7 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({ onOpenTransmissi
           </button>
           <button
             onClick={() => setFilter('present')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+            className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-all ${
               filter === 'present' ? 'bg-emerald-600 text-white shadow-xs' : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100'
             }`}
           >
@@ -163,7 +243,7 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({ onOpenTransmissi
           </button>
           <button
             onClick={() => setFilter('expected')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+            className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-all ${
               filter === 'expected' ? 'bg-sky-600 text-white shadow-xs' : 'bg-sky-50 text-sky-800 hover:bg-sky-100'
             }`}
           >
@@ -171,7 +251,7 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({ onOpenTransmissi
           </button>
           <button
             onClick={() => setFilter('departed')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+            className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-all ${
               filter === 'departed' ? 'bg-slate-600 text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
             }`}
           >
@@ -179,42 +259,221 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({ onOpenTransmissi
           </button>
           <button
             onClick={() => setFilter('absent')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+            className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-all ${
               filter === 'absent' ? 'bg-amber-600 text-white shadow-xs' : 'bg-amber-50 text-amber-800 hover:bg-amber-100'
             }`}
           >
             Absents ({counts.absent})
           </button>
         </div>
+
+        {/* Section filter */}
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1">
+          <span className="text-slate-400 font-bold uppercase text-[10px] shrink-0">Section :</span>
+          <button
+            onClick={() => setSelectedSection('all')}
+            className={`px-2.5 py-1 rounded-lg text-xs font-semibold whitespace-nowrap ${
+              selectedSection === 'all' ? 'bg-rose-100 text-rose-800 font-bold' : 'text-slate-500 hover:bg-slate-100'
+            }`}
+          >
+            Toutes
+          </button>
+          {uniqueSections.map((secName) => (
+            <button
+              key={secName}
+              onClick={() => setSelectedSection(secName)}
+              className={`px-2.5 py-1 rounded-lg text-xs font-semibold whitespace-nowrap ${
+                selectedSection === secName ? 'bg-rose-100 text-rose-800 font-bold' : 'text-slate-500 hover:bg-slate-100'
+              }`}
+            >
+              {secName}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* Attendance List */}
+      {/* Main Content: TABLET MODE vs LIST MODE */}
       {loading ? (
         <div className="flex items-center justify-center min-h-[300px]">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-rose-600"></div>
         </div>
-      ) : (
-        <div className="space-y-3">
+      ) : filteredRecords.length === 0 ? (
+        <div className="bg-white rounded-3xl p-12 text-center border border-slate-200/80">
+          <Clock className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+          <h3 className="text-base font-bold text-slate-800">Aucun enfant correspondant aux filtres</h3>
+          <p className="text-xs text-slate-500 mt-1">Modifiez vos critères de recherche ou de section.</p>
+        </div>
+      ) : viewMode === 'tablet' ? (
+        /* TABLET / KIOSK TOUCH-FRIENDLY GRID */
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filteredRecords.map((item) => {
             const isPresent = item.status === 'present';
             const isDeparted = item.status === 'departed';
             const isAbsent = item.status.startsWith('absent');
             const isExpected = item.status === 'expected';
+            const duration = isPresent ? calculateDuration(item.actual_arrival) : null;
+
+            return (
+              <div
+                key={item.id}
+                className={`rounded-3xl p-5 border-2 transition-all flex flex-col justify-between shadow-xs ${
+                  isPresent
+                    ? 'bg-emerald-50/40 border-emerald-400 ring-2 ring-emerald-200/50'
+                    : isDeparted
+                    ? 'bg-slate-50/80 border-slate-200 opacity-80'
+                    : isAbsent
+                    ? 'bg-amber-50/50 border-amber-300'
+                    : 'bg-white border-slate-200 hover:border-rose-300 hover:shadow-md'
+                }`}
+              >
+                <div>
+                  {/* Top: Avatar & Badge */}
+                  <div className="flex items-start justify-between">
+                    <div className="w-14 h-14 rounded-2xl bg-white border border-slate-200/80 flex items-center justify-center text-3xl shadow-xs">
+                      {item.avatar_emoji}
+                    </div>
+
+                    <span className={`text-[11px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider ${
+                      isPresent
+                        ? 'bg-emerald-600 text-white'
+                        : isDeparted
+                        ? 'bg-slate-700 text-white'
+                        : isAbsent
+                        ? 'bg-amber-600 text-white'
+                        : 'bg-sky-100 text-sky-800'
+                    }`}>
+                      {isPresent ? 'Présent' : isDeparted ? 'Parti' : isAbsent ? 'Absent' : 'Attendu'}
+                    </span>
+                  </div>
+
+                  {/* Name and section */}
+                  <div className="mt-3.5">
+                    <h3 className="font-black text-slate-900 text-base">
+                      {item.first_name} {item.last_name}
+                    </h3>
+                    <p className="text-xs font-semibold text-slate-500 mt-0.5">
+                      {item.section_name}
+                    </p>
+                  </div>
+
+                  {/* Timestamps & Info */}
+                  <div className="mt-3 text-xs space-y-1">
+                    {isPresent && (
+                      <div className="bg-emerald-100/70 text-emerald-900 rounded-xl p-2 font-bold flex items-center justify-between">
+                        <span>Arrivé à {item.actual_arrival}</span>
+                        {duration && (
+                          <span className="flex items-center gap-1 text-[11px] text-emerald-700">
+                            <Timer className="w-3 h-3" /> {duration}
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    {isDeparted && (
+                      <div className="bg-slate-100 text-slate-700 rounded-xl p-2 font-semibold text-[11px]">
+                        <p>Parti à {item.actual_departure}</p>
+                        {item.pickup_by && <p className="truncate text-slate-500 mt-0.5">Par : {item.pickup_by}</p>}
+                      </div>
+                    )}
+
+                    {isAbsent && (
+                      <div className="bg-amber-100 text-amber-900 rounded-xl p-2 font-bold text-[11px]">
+                        {item.notes || 'Absent'}
+                      </div>
+                    )}
+
+                    {isExpected && (
+                      <div className="text-slate-500 text-xs py-1">
+                        Prévu : <strong>{item.scheduled_arrival} - {item.scheduled_departure}</strong>
+                      </div>
+                    )}
+
+                    {item.allergies && item.allergies !== 'Aucune' && (
+                      <p className="text-[11px] text-rose-600 font-bold truncate">
+                        ⚠️ Allergie : {item.allergies}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Big Touch CTA Buttons */}
+                <div className="mt-5 pt-3 border-t border-slate-200/60">
+                  {isExpected && (
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        onClick={() => handleInstantCheckIn(item.child_id)}
+                        className="py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-black shadow-xs transition-transform active:scale-95 flex items-center justify-center gap-1"
+                      >
+                        <UserCheck className="w-4 h-4" />
+                        <span>Arrivée</span>
+                      </button>
+                      <button
+                        onClick={() => setActiveAbsenceChild(item)}
+                        className="py-2.5 px-3 bg-slate-100 hover:bg-amber-100 hover:text-amber-900 text-slate-600 rounded-2xl text-xs font-bold transition-colors"
+                      >
+                        Absence
+                      </button>
+                    </div>
+                  )}
+
+                  {isPresent && (
+                    <div className="space-y-2">
+                      <button
+                        onClick={() => {
+                          setActiveCheckoutChild(item);
+                          setPickupPerson(item.guardians?.[0] ? `${item.guardians[0].first_name} ${item.guardians[0].last_name} (${item.guardians[0].relation})` : '');
+                        }}
+                        className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl text-xs font-black shadow-xs transition-transform active:scale-95 flex items-center justify-center gap-1.5"
+                      >
+                        <Clock className="w-4 h-4" />
+                        <span>Pointer Départ</span>
+                      </button>
+                      <button
+                        onClick={() => onOpenTransmission(item.child_id)}
+                        className="w-full py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl text-[11px] font-bold transition-colors"
+                      >
+                        Cahier de transmission
+                      </button>
+                    </div>
+                  )}
+
+                  {(isDeparted || isAbsent) && (
+                    <button
+                      onClick={() => handleReset(item.child_id)}
+                      className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-1"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      <span>Réinitialiser</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        /* COMPACT LIST VIEW */
+        <div className="space-y-2.5">
+          {filteredRecords.map((item) => {
+            const isPresent = item.status === 'present';
+            const isDeparted = item.status === 'departed';
+            const isAbsent = item.status.startsWith('absent');
+            const isExpected = item.status === 'expected';
+            const duration = isPresent ? calculateDuration(item.actual_arrival) : null;
 
             return (
               <div
                 key={item.id}
                 className={`p-4 rounded-3xl border transition-all flex flex-col md:flex-row items-start md:items-center justify-between gap-4 ${
                   isPresent
-                    ? 'bg-white border-emerald-200 shadow-xs ring-1 ring-emerald-100'
+                    ? 'bg-white border-emerald-300 ring-1 ring-emerald-100 shadow-xs'
                     : isDeparted
                     ? 'bg-slate-50/80 border-slate-200 opacity-90'
                     : isAbsent
                     ? 'bg-amber-50/40 border-amber-200'
-                    : 'bg-white border-slate-200/80 hover:border-slate-300'
+                    : 'bg-white border-slate-200/80'
                 }`}
               >
-                {/* Child information */}
                 <div className="flex items-center gap-3.5 min-w-[260px]">
                   <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-2xl shrink-0 shadow-2xs">
                     {item.avatar_emoji}
@@ -228,33 +487,28 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({ onOpenTransmissi
                         {item.section_name}
                       </span>
                     </div>
-
                     <div className="text-xs text-slate-500 mt-0.5 flex items-center gap-2">
                       <span>Prévu : <strong>{item.scheduled_arrival} - {item.scheduled_departure}</strong></span>
                       {item.allergies && item.allergies !== 'Aucune' && (
-                        <span className="text-rose-600 font-semibold flex items-center gap-0.5">
-                          ⚠️ {item.allergies}
-                        </span>
+                        <span className="text-rose-600 font-bold">⚠️ {item.allergies}</span>
                       )}
                     </div>
                   </div>
                 </div>
 
-                {/* Pointage Status & Timestamps */}
                 <div className="flex flex-wrap items-center gap-3 text-xs">
                   {isPresent && (
-                    <div className="px-3 py-1.5 rounded-xl bg-emerald-100 text-emerald-800 font-bold flex items-center gap-1.5">
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      <span>Arrivé(e) à {item.actual_arrival}</span>
+                    <div className="px-3 py-1.5 rounded-xl bg-emerald-100 text-emerald-800 font-bold flex items-center gap-2">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>Arrivé à {item.actual_arrival}</span>
+                      {duration && <span className="text-emerald-700 text-[11px]">({duration})</span>}
                     </div>
                   )}
 
                   {isDeparted && (
-                    <div className="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-700 font-medium flex flex-col sm:flex-row sm:items-center gap-1">
-                      <span className="font-bold">Parti(e) à {item.actual_departure}</span>
-                      {item.pickup_by && (
-                        <span className="text-slate-500 text-[11px]">&bull; Récupéré par : {item.pickup_by}</span>
-                      )}
+                    <div className="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-700 font-medium flex items-center gap-1.5">
+                      <span className="font-bold">Parti à {item.actual_departure}</span>
+                      {item.pickup_by && <span className="text-slate-500 text-[11px]">&bull; {item.pickup_by}</span>}
                     </div>
                   )}
 
@@ -272,22 +526,20 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({ onOpenTransmissi
                   )}
                 </div>
 
-                {/* Action buttons */}
                 <div className="flex items-center gap-2 self-end md:self-auto shrink-0">
                   {isExpected && (
                     <>
                       <button
                         onClick={() => handleInstantCheckIn(item.child_id)}
-                        className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs transition-colors flex items-center gap-1.5"
+                        className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs transition-colors"
                       >
-                        <UserCheck className="w-3.5 h-3.5" />
-                        <span>Pointer Arrivée</span>
+                        Pointer Arrivée
                       </button>
                       <button
                         onClick={() => setActiveAbsenceChild(item)}
                         className="px-3 py-2 bg-slate-100 hover:bg-amber-100 hover:text-amber-800 text-slate-600 rounded-xl text-xs font-semibold transition-colors"
                       >
-                        Signaler Absence
+                        Absence
                       </button>
                     </>
                   )}
@@ -299,10 +551,9 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({ onOpenTransmissi
                           setActiveCheckoutChild(item);
                           setPickupPerson(item.guardians?.[0] ? `${item.guardians[0].first_name} ${item.guardians[0].last_name} (${item.guardians[0].relation})` : '');
                         }}
-                        className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold shadow-xs transition-colors flex items-center gap-1.5"
+                        className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold shadow-xs transition-colors"
                       >
-                        <Clock className="w-3.5 h-3.5" />
-                        <span>Pointer Départ</span>
+                        Pointer Départ
                       </button>
                       <button
                         onClick={() => onOpenTransmission(item.child_id)}
@@ -329,7 +580,7 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({ onOpenTransmissi
         </div>
       )}
 
-      {/* Check-out Modal with Authorized Pickup validation */}
+      {/* Check-out Modal */}
       {activeCheckoutChild && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs">
           <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
@@ -337,7 +588,7 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({ onOpenTransmissi
               Pointer la sortie : {activeCheckoutChild.first_name} {activeCheckoutChild.last_name}
             </h3>
             <p className="text-xs text-slate-500 mb-4">
-              Vérifiez l'identité de la personne autorisée qui récupère l'enfant.
+              Vérifiez l'identité de la personne autorisée venue chercher l'enfant.
             </p>
 
             <form onSubmit={handleConfirmCheckOut} className="space-y-4">
@@ -377,7 +628,7 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({ onOpenTransmissi
                 <label className="block text-xs font-bold text-slate-700 mb-1">Remarques au départ (facultatif)</label>
                 <input
                   type="text"
-                  placeholder="ex: Transmissions données à la maman"
+                  placeholder="ex: Bonne soirée, doudou dans le sac"
                   value={checkoutNotes}
                   onChange={(e) => setCheckoutNotes(e.target.value)}
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 outline-none"
@@ -394,7 +645,7 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({ onOpenTransmissi
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition-colors"
+                  className="px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition-colors"
                 >
                   Valider le départ
                 </button>
@@ -412,7 +663,7 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({ onOpenTransmissi
               Déclarer l'absence : {activeAbsenceChild.first_name} {activeAbsenceChild.last_name}
             </h3>
             <p className="text-xs text-slate-500 mb-4">
-              Enregistrement de l'absence pour le registre officiel et la facturation.
+              Enregistrement dans le registre d'appel officiel.
             </p>
 
             <form onSubmit={handleConfirmAbsence} className="space-y-4 text-xs">
@@ -423,7 +674,7 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({ onOpenTransmissi
                   required
                   value={absenceReason}
                   onChange={(e) => setAbsenceReason(e.target.value)}
-                  placeholder="ex: Fièvre, certificat médical, convenance parentale"
+                  placeholder="ex: Fièvre, gastro, convenance familiale"
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 outline-none"
                 />
               </div>
@@ -437,7 +688,7 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({ onOpenTransmissi
                   className="rounded text-rose-600 focus:ring-rose-500"
                 />
                 <label htmlFor="justified" className="font-semibold text-slate-700">
-                  Absence justifiée (maladie avec prévenance ou certificat)
+                  Absence justifiée (certificat médical ou prévenance préalable)
                 </label>
               </div>
 

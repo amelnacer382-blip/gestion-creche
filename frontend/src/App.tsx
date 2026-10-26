@@ -45,6 +45,8 @@ export const App: React.FC = () => {
     setIsTransmissionOpen(true);
   };
 
+  const presentCount = children.filter((c) => c.today_status === 'present').length;
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-['Plus_Jakarta_Sans',sans-serif]">
       {/* Top Navigation */}
@@ -52,12 +54,16 @@ export const App: React.FC = () => {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         onOpenNewChildModal={() => setIsNewChildOpen(true)}
+        presentCount={presentCount}
       />
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {activeTab === 'dashboard' && (
-          <DashboardView onNavigate={(tab) => setActiveTab(tab)} />
+          <DashboardView onNavigate={(tab) => {
+            setActiveTab(tab);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }} />
         )}
 
         {activeTab === 'children' && (
@@ -92,7 +98,7 @@ export const App: React.FC = () => {
             <span className="text-slate-400 font-normal">&bull; Logiciel de gestion professionnelle de crèche et micro-crèche</span>
           </div>
           <div className="text-slate-400">
-            Conforme aux normes PMI, Décret Petite Enfance & Règlements CAF
+            Conforme aux normes PMI, Décret Petite Enfance & Règlements CAF (Pajeemploi / CMG)
           </div>
         </div>
       </footer>
