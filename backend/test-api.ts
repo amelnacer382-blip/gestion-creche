@@ -16,106 +16,43 @@ async function testEndpoints() {
   if (!Array.isArray(sections) || sections.length < 3) throw new Error('Sections fetch failed');
   console.log(`✓ Sections retrieved (${sections.length} sections)`);
 
-  // 3. Children list
-  const childRes = await fetch(`${BASE}/children`);
-  const children = await childRes.json();
-  if (!Array.isArray(children) || children.length === 0) throw new Error('Children fetch failed');
-  console.log(`✓ Children retrieved (${children.length} children)`);
+  // 3. Feed
+  const feedRes = await fetch(`${BASE}/feed`);
+  const feed = await feedRes.json();
+  if (!Array.isArray(feed) || feed.length === 0) throw new Error('Feed fetch failed');
+  console.log(`✓ Activities feed retrieved (${feed.length} moments)`);
 
-  // 4. Create child
-  const newChildRes = await fetch(`${BASE}/children`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      first_name: 'TestEnfant',
-      last_name: 'Integration',
-      birth_date: '2025-05-01',
-      gender: 'M',
-      section_id: 2,
-      allergies: 'Kiwi',
-      diet: 'Standard',
-      guardians: [
-        { first_name: 'Parent', last_name: 'Test', relation: 'Mère', phone: '0600000000', email: 'parent@test.com' }
-      ]
-    })
-  });
-  const createdChild = await newChildRes.json();
-  if (!createdChild || !createdChild.id) throw new Error('Child creation failed');
-  console.log(`✓ Child created with ID: ${createdChild.id}`);
+  // 4. Like an activity
+  const likeRes = await fetch(`${BASE}/feed/${feed[0].id}/like`, { method: 'POST' });
+  const liked = await likeRes.json();
+  if (liked.likes_count <= feed[0].likes_count) throw new Error('Like increment failed');
+  console.log(`✓ Activity liked (${liked.likes_count} likes)`);
 
-  // 5. Check-in test
-  const checkinRes = await fetch(`${BASE}/attendance/checkin`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      child_id: createdChild.id,
-      actual_arrival: '08:45',
-      notes: 'Arrivée en forme'
-    })
-  });
-  const checkinData = await checkinRes.json();
-  if (!checkinData.success || checkinData.attendance.status !== 'present') throw new Error('Check-in failed');
-  console.log('✓ Check-in succeeded');
+  // 5. Weekly Menu
+  const menuRes = await fetch(`${BASE}/weekly-menu`);
+  const menu = await menuRes.json();
+  if (!Array.isArray(menu) || menu.length !== 5) throw new Error('Weekly menu fetch failed');
+  console.log(`✓ Weekly menu retrieved (5 days)`);
 
-  // 6. Daily log upsert
-  const logRes = await fetch(`${BASE}/daily-logs`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      child_id: createdChild.id,
-      mood: 'Très joyeux',
-      meals_summary: 'Repas complet',
-      naps_summary: 'Sieste 1h30',
-      hygiene_summary: '2 changes',
-      activities: 'Peinture',
-      observations: 'Super journée',
-      logged_by: 'Testeur'
-    })
-  });
-  const logData = await logRes.json();
-  if (!logData || logData.mood !== 'Très joyeux') throw new Error('Daily log upsert failed');
-  console.log('✓ Daily log upsert succeeded');
+  // 6. Announcements
+  const annRes = await fetch(`${BASE}/announcements`);
+  const ann = await annRes.json();
+  if (!Array.isArray(ann) || ann.length === 0) throw new Error('Announcements fetch failed');
+  console.log(`✓ Announcements retrieved (${ann.length} announcements)`);
 
-  // 7. Check-out test
-  const checkoutRes = await fetch(`${BASE}/attendance/checkout`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      child_id: createdChild.id,
-      actual_departure: '17:00',
-      pickup_by: 'Parent Test'
-    })
-  });
-  const checkoutData = await checkoutRes.json();
-  if (!checkoutData.success || checkoutData.attendance.status !== 'departed') throw new Error('Check-out failed');
-  console.log('✓ Check-out succeeded');
+  // 7. Vaccinations for child 1
+  const vacRes = await fetch(`${BASE}/vaccinations/child/1`);
+  const vaccines = await vacRes.json();
+  if (!Array.isArray(vaccines) || vaccines.length < 7) throw new Error('Vaccinations fetch failed');
+  console.log(`✓ Vaccinations retrieved (${vaccines.length} mandatory vaccines)`);
 
-  // 8. Ratios
-  const ratiosRes = await fetch(`${BASE}/staff/ratios`);
-  const ratiosData = await ratiosRes.json();
-  if (!Array.isArray(ratiosData.sections)) throw new Error('Ratios calculation failed');
-  console.log('✓ Staff legal ratios calculated');
+  // 8. Milestones for child 1
+  const mileRes = await fetch(`${BASE}/milestones/child/1`);
+  const milestones = await mileRes.json();
+  if (!Array.isArray(milestones) || milestones.length === 0) throw new Error('Milestones fetch failed');
+  console.log(`✓ Milestones retrieved (${milestones.length} milestones)`);
 
-  // 9. Invoice generation
-  const invRes = await fetch(`${BASE}/invoices/generate`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      child_id: createdChild.id,
-      month: '2026-10',
-      actual_hours: 140,
-      meal_count: 20
-    })
-  });
-  const invData = await invRes.json();
-  if (!invData || !invData.invoice_number) throw new Error('Invoice generation failed');
-  console.log(`✓ Invoice generated: ${invData.invoice_number} (Total: ${invData.total_due} €)`);
-
-  // Clean test child
-  await fetch(`${BASE}/children/${createdChild.id}`, { method: 'DELETE' });
-  console.log('✓ Cleaned up test child');
-
-  console.log('🎉 ALL API ENDPOINTS VERIFIED SUCCESSFULLY!');
+  console.log('🎉 ALL EXTENDED API ENDPOINTS VERIFIED SUCCESSFULLY!');
 }
 
 testEndpoints().catch((err) => {

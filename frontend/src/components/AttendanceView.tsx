@@ -37,7 +37,7 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({ onOpenTransmissi
   const [activeCheckoutChild, setActiveCheckoutChild] = useState<AttendanceRecord | null>(null);
   const [pickupPerson, setPickupPerson] = useState<string>('');
   const [checkoutNotes, setCheckoutNotes] = useState<string>('');
-
+  const [enteredPin, setEnteredPin] = useState<string>('');
   // Absence modal state
   const [activeAbsenceChild, setActiveAbsenceChild] = useState<AttendanceRecord | null>(null);
   const [absenceReason, setAbsenceReason] = useState<string>('Fièvre / Maladie');
@@ -604,7 +604,7 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({ onOpenTransmissi
                       onClick={() => setPickupPerson(`${g.first_name} ${g.last_name} (${g.relation})`)}
                       className={`w-full text-left p-2.5 rounded-xl border text-xs font-semibold flex items-center justify-between transition-all ${
                         pickupPerson.startsWith(g.first_name)
-                          ? 'border-rose-500 bg-rose-50 text-rose-800'
+                          ? 'border-rose-500 bg-rose-50 text-rose-800 ring-1 ring-rose-200'
                           : 'border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700'
                       }`}
                     >
@@ -624,6 +624,62 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({ onOpenTransmissi
                 />
               </div>
 
+              {/* Virtual Touch PIN Pad */}
+              <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-bold text-slate-700">Code PIN de sécurité Parent</span>
+                  <div className="flex gap-1.5">
+                    {[0, 1, 2, 3].map((idx) => (
+                      <span
+                        key={idx}
+                        className={`w-3 h-3 rounded-full transition-all ${
+                          enteredPin.length > idx ? 'bg-rose-600 scale-110' : 'bg-slate-300'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                {/* Mini keypad */}
+                <div className="grid grid-cols-3 gap-1.5 max-w-[200px] mx-auto mt-2">
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => (
+                    <button
+                      key={n}
+                      type="button"
+                      onClick={() => {
+                        if (enteredPin.length < 4) setEnteredPin((p) => p + n);
+                      }}
+                      className="py-1.5 rounded-xl bg-white hover:bg-rose-50 border border-slate-200 font-black text-sm text-slate-800 shadow-2xs active:scale-95"
+                    >
+                      {n}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => setEnteredPin('')}
+                    className="py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs"
+                  >
+                    C
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (enteredPin.length < 4) setEnteredPin((p) => p + '0');
+                    }}
+                    className="py-1.5 rounded-xl bg-white hover:bg-rose-50 border border-slate-200 font-black text-sm text-slate-800 shadow-2xs active:scale-95"
+                  >
+                    0
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEnteredPin((p) => p.slice(0, -1))}
+                    className="py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs"
+                  >
+                    ⌫
+                  </button>
+                </div>
+              </div>
+
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">Remarques au départ (facultatif)</label>
                 <input
@@ -638,14 +694,17 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({ onOpenTransmissi
               <div className="flex items-center justify-end gap-2 pt-2">
                 <button
                   type="button"
-                  onClick={() => setActiveCheckoutChild(null)}
+                  onClick={() => {
+                    setActiveCheckoutChild(null);
+                    setEnteredPin('');
+                  }}
                   className="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-900"
                 >
                   Annuler
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition-colors"
+                  className="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-black shadow-xs transition-colors"
                 >
                   Valider le départ
                 </button>

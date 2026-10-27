@@ -6,6 +6,9 @@ import { AttendanceView } from './components/AttendanceView';
 import { DailyLogView } from './components/DailyLogView';
 import { StaffView } from './components/StaffView';
 import { BillingView } from './components/BillingView';
+import { FeedView } from './components/FeedView';
+import { WeeklyMenuView } from './components/WeeklyMenuView';
+import { AnnouncementsView } from './components/AnnouncementsView';
 import { NewChildModal } from './components/NewChildModal';
 import { ChildDetailModal } from './components/ChildDetailModal';
 import { DailyLogModal } from './components/DailyLogModal';
@@ -66,6 +69,14 @@ export const App: React.FC = () => {
           }} />
         )}
 
+        {activeTab === 'attendance' && (
+          <AttendanceView onOpenTransmission={handleOpenTransmission} />
+        )}
+
+        {activeTab === 'feed' && (
+          <FeedView />
+        )}
+
         {activeTab === 'children' && (
           <ChildrenView
             onOpenNewChildModal={() => setIsNewChildOpen(true)}
@@ -73,12 +84,16 @@ export const App: React.FC = () => {
           />
         )}
 
-        {activeTab === 'attendance' && (
-          <AttendanceView onOpenTransmission={handleOpenTransmission} />
-        )}
-
         {activeTab === 'logs' && (
           <DailyLogView onOpenTransmissionModal={handleOpenTransmission} />
+        )}
+
+        {activeTab === 'menu' && (
+          <WeeklyMenuView />
+        )}
+
+        {activeTab === 'announcements' && (
+          <AnnouncementsView />
         )}
 
         {activeTab === 'staff' && (
@@ -94,11 +109,11 @@ export const App: React.FC = () => {
       <footer className="bg-white border-t border-slate-200 py-6 mt-12 text-center text-xs text-slate-500">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
           <div className="flex items-center gap-1.5 font-bold text-slate-700">
-            <span>🧸 P'tits Pas</span>
-            <span className="text-slate-400 font-normal">&bull; Logiciel de gestion professionnelle de crèche et micro-crèche</span>
+            <span>🧸 P'tits Pas Pro Suite</span>
+            <span className="text-slate-400 font-normal">&bull; Plateforme complète de gestion pour crèche & micro-crèche</span>
           </div>
           <div className="text-slate-400">
-            Conforme aux normes PMI, Décret Petite Enfance & Règlements CAF (Pajeemploi / CMG)
+            Conforme PMI, Décret Petite Enfance & Déclaration CAF Pajeemploi
           </div>
         </div>
       </footer>

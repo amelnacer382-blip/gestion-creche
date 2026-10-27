@@ -6,7 +6,12 @@ import {
   StaffMember, 
   RatioReport, 
   Invoice, 
-  DashboardStats 
+  DashboardStats,
+  ActivityFeedItem,
+  WeeklyMenuItem,
+  Announcement,
+  Vaccination,
+  Milestone
 } from './types';
 
 const BASE_URL = '/api';
@@ -209,5 +214,100 @@ export async function updateInvoiceStatus(id: number, status: 'pending' | 'paid'
     body: JSON.stringify({ status })
   });
   if (!res.ok) throw new Error('Erreur lors de la mise à jour du statut');
+  return res.json();
+}
+
+// === NEW HIGH-END MODULES API ===
+
+export async function fetchFeed(sectionId?: number): Promise<ActivityFeedItem[]> {
+  const url = sectionId ? `${BASE_URL}/feed?section_id=${sectionId}` : `${BASE_URL}/feed`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('Erreur de chargement du fil d\'activités');
+  return res.json();
+}
+
+export async function publishFeedItem(data: Partial<ActivityFeedItem>): Promise<ActivityFeedItem> {
+  const res = await fetch(`${BASE_URL}/feed`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  });
+  if (!res.ok) throw new Error('Erreur lors de la publication du moment');
+  return res.json();
+}
+
+export async function likeFeedItem(id: number): Promise<ActivityFeedItem> {
+  const res = await fetch(`${BASE_URL}/feed/${id}/like`, { method: 'POST' });
+  if (!res.ok) throw new Error('Erreur lors du like');
+  return res.json();
+}
+
+export async function fetchWeeklyMenu(): Promise<WeeklyMenuItem[]> {
+  const res = await fetch(`${BASE_URL}/weekly-menu`);
+  if (!res.ok) throw new Error('Erreur de chargement du menu');
+  return res.json();
+}
+
+export async function fetchAnnouncements(): Promise<Announcement[]> {
+  const res = await fetch(`${BASE_URL}/announcements`);
+  if (!res.ok) throw new Error('Erreur de chargement des annonces');
+  return res.json();
+}
+
+export async function createAnnouncement(data: Partial<Announcement>): Promise<Announcement> {
+  const res = await fetch(`${BASE_URL}/announcements`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  });
+  if (!res.ok) throw new Error('Erreur lors de la création de l\'annonce');
+  return res.json();
+}
+
+export async function deleteAnnouncement(id: number): Promise<{ success: boolean }> {
+  const res = await fetch(`${BASE_URL}/announcements/${id}`, { method: 'DELETE' });
+  if (!res.ok) throw new Error('Erreur lors de la suppression de l\'annonce');
+  return res.json();
+}
+
+export async function fetchVaccinations(childId: number): Promise<Vaccination[]> {
+  const res = await fetch(`${BASE_URL}/vaccinations/child/${childId}`);
+  if (!res.ok) throw new Error('Erreur de chargement des vaccins');
+  return res.json();
+}
+
+export async function updateVaccination(id: number, data: Partial<Vaccination>): Promise<Vaccination> {
+  const res = await fetch(`${BASE_URL}/vaccinations/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  });
+  if (!res.ok) throw new Error('Erreur lors de la mise à jour du vaccin');
+  return res.json();
+}
+
+export async function fetchMilestones(childId: number): Promise<Milestone[]> {
+  const res = await fetch(`${BASE_URL}/milestones/child/${childId}`);
+  if (!res.ok) throw new Error('Erreur de chargement des jalons');
+  return res.json();
+}
+
+export async function createMilestone(data: Partial<Milestone>): Promise<Milestone> {
+  const res = await fetch(`${BASE_URL}/milestones`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  });
+  if (!res.ok) throw new Error('Erreur lors de l\'enregistrement du jalon');
+  return res.json();
+}
+
+export async function updateMilestone(id: number, data: Partial<Milestone>): Promise<Milestone> {
+  const res = await fetch(`${BASE_URL}/milestones/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  });
+  if (!res.ok) throw new Error('Erreur lors de la mise à jour du jalon');
   return res.json();
 }

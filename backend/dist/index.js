@@ -22937,7 +22937,7 @@ var require_lib3 = __commonJS(function(exports, module) {
 });
 
 // src/index.ts
-var import_express8 = __toESM(require_express());
+var import_express13 = __toESM(require_express());
 var import_cors = __toESM(require_lib3());
 
 // src/db/database.ts
@@ -22992,6 +22992,7 @@ function initDatabase() {
       medical_notes TEXT,
       doctor_name TEXT,
       doctor_phone TEXT,
+      security_pin TEXT DEFAULT '1234',
       status TEXT DEFAULT 'active',
       contract_hours_per_week REAL DEFAULT 35,
       hourly_rate REAL DEFAULT 7.50,
@@ -23007,6 +23008,7 @@ function initDatabase() {
       phone TEXT NOT NULL,
       email TEXT,
       address TEXT,
+      security_pin TEXT DEFAULT '1234',
       is_emergency_contact INTEGER DEFAULT 1,
       is_authorized_pickup INTEGER DEFAULT 1
     );
@@ -23022,6 +23024,7 @@ function initDatabase() {
       status TEXT NOT NULL DEFAULT 'expected',
       pickup_by TEXT,
       notes TEXT,
+      signature_confirmed INTEGER DEFAULT 0,
       UNIQUE(child_id, date)
     );
 
@@ -23072,6 +23075,68 @@ function initDatabase() {
       status TEXT NOT NULL DEFAULT 'pending',
       issued_at TEXT NOT NULL,
       paid_at TEXT
+    );
+
+    -- 1. Activities Feed (Fil de vie & moments crèche)
+    CREATE TABLE IF NOT EXISTS activities_feed (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      caption TEXT NOT NULL,
+      section_id INTEGER REFERENCES sections(id),
+      author_name TEXT NOT NULL,
+      category TEXT NOT NULL DEFAULT 'eveil',
+      photo_emoji TEXT NOT NULL DEFAULT '\uD83C\uDFA8',
+      likes_count INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );
+
+    -- 2. Vaccinations (Carnet vaccinal officiel France - 11 vaccins)
+    CREATE TABLE IF NOT EXISTS vaccinations (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      child_id INTEGER NOT NULL REFERENCES children(id) ON DELETE CASCADE,
+      vaccine_name TEXT NOT NULL,
+      dose_number INTEGER NOT NULL DEFAULT 1,
+      administered_at TEXT,
+      next_due_date TEXT,
+      is_mandatory INTEGER DEFAULT 1,
+      status TEXT NOT NULL DEFAULT 'a_jour'
+    );
+
+    -- 3. Announcements (Messagerie & Alertes Direction)
+    CREATE TABLE IF NOT EXISTS announcements (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      content TEXT NOT NULL,
+      priority TEXT NOT NULL DEFAULT 'info',
+      target_section_id INTEGER REFERENCES sections(id),
+      author TEXT NOT NULL,
+      pinned INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );
+
+    -- 4. Weekly Menu (Semainier des repas & Matrice allergènes)
+    CREATE TABLE IF NOT EXISTS weekly_menu (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      day_of_week TEXT NOT NULL UNIQUE,
+      starter TEXT NOT NULL,
+      main_course TEXT NOT NULL,
+      side_dish TEXT,
+      veggie_option TEXT,
+      dessert TEXT NOT NULL,
+      afternoon_snack TEXT NOT NULL,
+      allergens TEXT,
+      is_bio INTEGER DEFAULT 1
+    );
+
+    -- 5. Development Milestones (Jalons d'éveil & Pédagogie)
+    CREATE TABLE IF NOT EXISTS development_milestones (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      child_id INTEGER NOT NULL REFERENCES children(id) ON DELETE CASCADE,
+      domain TEXT NOT NULL,
+      milestone_title TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'en_cours',
+      achieved_at TEXT,
+      educator_notes TEXT
     );
   `);
 }
@@ -23741,12 +23806,182 @@ statsRouter.get("/dashboard", (_req, res) => {
   });
 });
 
+// src/routes/feed.ts
+var import_express8 = __toESM(require_express());
+var feedRouter = import_express8.Router();
+feedRouter.get("/", (req, res) => {
+  const { section_id } = req.query;
+  let sql = `
+    SELECT 
+      f.*,
+      s.name as section_name,
+      s.color as section_color
+    FROM activities_feed f
+    LEFT JOIN sections s ON f.section_id = s.id
+    WHERE 1=1
+  `;
+  const params = [];
+  if (section_id) {
+    sql += ` AND f.section_id = ?`;
+    params.push(Number(section_id));
+  }
+  sql += ` ORDER BY f.created_at DESC, f.id DESC`;
+  const activities = db.prepare(sql).all(params);
+  res.json(activities);
+});
+feedRouter.post("/", (req, res) => {
+  const { title, caption, section_id, author_name, category, photo_emoji } = req.body;
+  if (!title || !caption) {
+    return res.status(400).json({ error: "Titre et légende requis" });
+  }
+  db.prepare(`
+    INSERT INTO activities_feed (title, caption, section_id, author_name, category, photo_emoji)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `).run(title, caption, section_id ? Number(section_id) : null, author_name || "Équipe pédagogique", category || "eveil", photo_emoji || "\uD83C\uDFA8");
+  const lastId = db.prepare(`SELECT last_insert_rowid() as id`).get();
+  const created = db.prepare(`SELECT * FROM activities_feed WHERE id = ?`).get(lastId?.id || 1);
+  res.status(201).json(created);
+});
+feedRouter.post("/:id/like", (req, res) => {
+  const id = Number(req.params.id);
+  db.prepare(`UPDATE activities_feed SET likes_count = likes_count + 1 WHERE id = ?`).run(id);
+  const updated = db.prepare(`SELECT * FROM activities_feed WHERE id = ?`).get(id);
+  res.json(updated);
+});
+
+// src/routes/vaccinations.ts
+var import_express9 = __toESM(require_express());
+var vaccinationsRouter = import_express9.Router();
+vaccinationsRouter.get("/child/:childId", (req, res) => {
+  const childId = Number(req.params.childId);
+  const vaccines = db.prepare(`
+    SELECT * FROM vaccinations 
+    WHERE child_id = ? 
+    ORDER BY is_mandatory DESC, vaccine_name ASC
+  `).all(childId);
+  res.json(vaccines);
+});
+vaccinationsRouter.put("/:id", (req, res) => {
+  const id = Number(req.params.id);
+  const { status, administered_at, next_due_date } = req.body;
+  db.prepare(`
+    UPDATE vaccinations SET
+      status = COALESCE(?, status),
+      administered_at = COALESCE(?, administered_at),
+      next_due_date = COALESCE(?, next_due_date)
+    WHERE id = ?
+  `).run(status ?? null, administered_at ?? null, next_due_date ?? null, id);
+  const updated = db.prepare(`SELECT * FROM vaccinations WHERE id = ?`).get(id);
+  res.json(updated);
+});
+
+// src/routes/announcements.ts
+var import_express10 = __toESM(require_express());
+var announcementsRouter = import_express10.Router();
+announcementsRouter.get("/", (_req, res) => {
+  const announcements = db.prepare(`
+    SELECT 
+      a.*,
+      s.name as target_section_name,
+      s.color as target_section_color
+    FROM announcements a
+    LEFT JOIN sections s ON a.target_section_id = s.id
+    ORDER BY a.pinned DESC, a.created_at DESC
+  `).all();
+  res.json(announcements);
+});
+announcementsRouter.post("/", (req, res) => {
+  const { title, content, priority, target_section_id, author, pinned } = req.body;
+  if (!title || !content) {
+    return res.status(400).json({ error: "Titre et contenu requis" });
+  }
+  db.prepare(`
+    INSERT INTO announcements (title, content, priority, target_section_id, author, pinned)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `).run(title, content, priority || "info", target_section_id ? Number(target_section_id) : null, author || "Direction", pinned ? 1 : 0);
+  const lastId = db.prepare(`SELECT last_insert_rowid() as id`).get();
+  const created = db.prepare(`SELECT * FROM announcements WHERE id = ?`).get(lastId?.id || 1);
+  res.status(201).json(created);
+});
+announcementsRouter.delete("/:id", (req, res) => {
+  const id = Number(req.params.id);
+  db.prepare(`DELETE FROM announcements WHERE id = ?`).run(id);
+  res.json({ success: true });
+});
+
+// src/routes/menu.ts
+var import_express11 = __toESM(require_express());
+var menuRouter = import_express11.Router();
+menuRouter.get("/", (_req, res) => {
+  const menu = db.prepare(`SELECT * FROM weekly_menu ORDER BY id ASC`).all();
+  res.json(menu);
+});
+menuRouter.put("/:id", (req, res) => {
+  const id = Number(req.params.id);
+  const { starter, main_course, side_dish, veggie_option, dessert, afternoon_snack, allergens, is_bio } = req.body;
+  db.prepare(`
+    UPDATE weekly_menu SET
+      starter = COALESCE(?, starter),
+      main_course = COALESCE(?, main_course),
+      side_dish = COALESCE(?, side_dish),
+      veggie_option = COALESCE(?, veggie_option),
+      dessert = COALESCE(?, dessert),
+      afternoon_snack = COALESCE(?, afternoon_snack),
+      allergens = COALESCE(?, allergens),
+      is_bio = COALESCE(?, is_bio)
+    WHERE id = ?
+  `).run(starter ?? null, main_course ?? null, side_dish ?? null, veggie_option ?? null, dessert ?? null, afternoon_snack ?? null, allergens ?? null, is_bio !== undefined ? is_bio ? 1 : 0 : null, id);
+  const updated = db.prepare(`SELECT * FROM weekly_menu WHERE id = ?`).get(id);
+  res.json(updated);
+});
+
+// src/routes/milestones.ts
+var import_express12 = __toESM(require_express());
+var milestonesRouter = import_express12.Router();
+milestonesRouter.get("/child/:childId", (req, res) => {
+  const childId = Number(req.params.childId);
+  const milestones = db.prepare(`
+    SELECT * FROM development_milestones 
+    WHERE child_id = ? 
+    ORDER BY domain ASC, achieved_at DESC
+  `).all(childId);
+  res.json(milestones);
+});
+milestonesRouter.post("/", (req, res) => {
+  const { child_id, domain, milestone_title, status, achieved_at, educator_notes } = req.body;
+  if (!child_id || !domain || !milestone_title) {
+    return res.status(400).json({ error: "Champs obligatoires manquants" });
+  }
+  const today = new Date().toISOString().split("T")[0];
+  db.prepare(`
+    INSERT INTO development_milestones (child_id, domain, milestone_title, status, achieved_at, educator_notes)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `).run(Number(child_id), domain, milestone_title, status || "en_cours", status === "acquis" ? achieved_at || today : null, educator_notes || null);
+  const lastId = db.prepare(`SELECT last_insert_rowid() as id`).get();
+  const created = db.prepare(`SELECT * FROM development_milestones WHERE id = ?`).get(lastId?.id || 1);
+  res.status(201).json(created);
+});
+milestonesRouter.put("/:id", (req, res) => {
+  const id = Number(req.params.id);
+  const { status, achieved_at, educator_notes } = req.body;
+  const today = new Date().toISOString().split("T")[0];
+  db.prepare(`
+    UPDATE development_milestones SET
+      status = COALESCE(?, status),
+      achieved_at = COALESCE(?, CASE WHEN ? = 'acquis' THEN ? ELSE achieved_at END),
+      educator_notes = COALESCE(?, educator_notes)
+    WHERE id = ?
+  `).run(status ?? null, achieved_at ?? null, status ?? null, today, educator_notes ?? null, id);
+  const updated = db.prepare(`SELECT * FROM development_milestones WHERE id = ?`).get(id);
+  res.json(updated);
+});
+
 // src/index.ts
-var app = import_express8.default();
+var app = import_express13.default();
 var PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 5050;
 initDatabase();
 app.use(import_cors.default());
-app.use(import_express8.default.json());
+app.use(import_express13.default.json());
 app.use("/api/sections", sectionsRouter);
 app.use("/api/children", childrenRouter);
 app.use("/api/attendance", attendanceRouter);
@@ -23754,11 +23989,16 @@ app.use("/api/daily-logs", dailyLogsRouter);
 app.use("/api/staff", staffRouter);
 app.use("/api/invoices", billingRouter);
 app.use("/api/stats", statsRouter);
+app.use("/api/feed", feedRouter);
+app.use("/api/vaccinations", vaccinationsRouter);
+app.use("/api/announcements", announcementsRouter);
+app.use("/api/weekly-menu", menuRouter);
+app.use("/api/milestones", milestonesRouter);
 app.get("/api/health", (_req, res) => {
   res.json({
     status: "ok",
     app: "Crèche Facile API",
-    version: "1.0.0",
+    version: "1.2.0",
     timestamp: new Date().toISOString()
   });
 });

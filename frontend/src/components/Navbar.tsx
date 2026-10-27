@@ -5,11 +5,13 @@ import {
   Clock, 
   BookOpen, 
   ShieldCheck, 
-  ReceiptEuro,
-  UserPlus,
-  Sparkles,
-  Calendar,
-  Activity
+  ReceiptEuro, 
+  UserPlus, 
+  Sparkles, 
+  Calendar, 
+  Camera, 
+  Utensils, 
+  Megaphone 
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -40,10 +42,13 @@ export const Navbar: React.FC<NavbarProps> = ({
   const tabs = [
     { id: 'dashboard', label: 'Tableau de bord', icon: LayoutDashboard },
     { id: 'attendance', label: 'Pointage & Présences', icon: Clock, badge: presentCount > 0 ? `${presentCount}` : undefined },
+    { id: 'feed', label: 'Fil de Vie 📸', icon: Camera },
     { id: 'children', label: 'Enfants & Familles', icon: Users },
     { id: 'logs', label: 'Cahier de transmission', icon: BookOpen },
+    { id: 'menu', label: 'Menus & Allergènes 🥗', icon: Utensils },
+    { id: 'announcements', label: 'Messagerie 📢', icon: Megaphone },
     { id: 'staff', label: 'Personnel & Ratios', icon: ShieldCheck },
-    { id: 'billing', label: 'Facturation & Contrats', icon: ReceiptEuro },
+    { id: 'billing', label: 'Facturation & CAF', icon: ReceiptEuro },
   ];
 
   const todayStr = new Intl.DateTimeFormat('fr-FR', {
@@ -66,7 +71,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <div className="flex items-center gap-2">
                 <span className="font-extrabold text-xl text-slate-900 tracking-tight">P'tits Pas</span>
                 <span className="bg-gradient-to-r from-rose-500 to-amber-500 text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider shadow-2xs">
-                  Pro
+                  Pro Suite
                 </span>
                 <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/60">
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
@@ -90,7 +95,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           <div className="flex items-center space-x-3">
             <button
               onClick={onOpenNewChildModal}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-700 hover:to-rose-600 text-white rounded-2xl text-xs sm:text-sm font-bold shadow-xs hover:shadow-md transition-all active:scale-95"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-700 hover:to-rose-600 text-white rounded-2xl text-xs sm:text-sm font-bold shadow-xs hover:shadow transition-all active:scale-95"
             >
               <UserPlus className="w-4 h-4" />
               <span>Inscrire un enfant</span>
@@ -109,8 +114,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all ${
                   isActive
-                    ? 'bg-rose-50 text-rose-700 shadow-xs ring-1 ring-rose-200/80'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80'
+                    ? 'bg-rose-50 text-rose-700 shadow-xs ring-1 ring-rose-200/80 font-extrabold'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 font-semibold'
                 }`}
               >
                 <Icon className={`w-4 h-4 ${isActive ? 'text-rose-600' : 'text-slate-400'}`} />

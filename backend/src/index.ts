@@ -8,6 +8,11 @@ import { dailyLogsRouter } from './routes/dailyLogs';
 import { staffRouter } from './routes/staff';
 import { billingRouter } from './routes/billing';
 import { statsRouter } from './routes/stats';
+import { feedRouter } from './routes/feed';
+import { vaccinationsRouter } from './routes/vaccinations';
+import { announcementsRouter } from './routes/announcements';
+import { menuRouter } from './routes/menu';
+import { milestonesRouter } from './routes/milestones';
 
 const app = express();
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 5050;
@@ -26,12 +31,17 @@ app.use('/api/daily-logs', dailyLogsRouter);
 app.use('/api/staff', staffRouter);
 app.use('/api/invoices', billingRouter);
 app.use('/api/stats', statsRouter);
+app.use('/api/feed', feedRouter);
+app.use('/api/vaccinations', vaccinationsRouter);
+app.use('/api/announcements', announcementsRouter);
+app.use('/api/weekly-menu', menuRouter);
+app.use('/api/milestones', milestonesRouter);
 
 app.get('/api/health', (_req, res) => {
   res.json({
     status: 'ok',
     app: 'Crèche Facile API',
-    version: '1.0.0',
+    version: '1.2.0',
     timestamp: new Date().toISOString()
   });
 });

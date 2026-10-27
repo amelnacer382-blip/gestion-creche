@@ -62,6 +62,7 @@ export function initDatabase() {
       medical_notes TEXT,
       doctor_name TEXT,
       doctor_phone TEXT,
+      security_pin TEXT DEFAULT '1234',
       status TEXT DEFAULT 'active',
       contract_hours_per_week REAL DEFAULT 35,
       hourly_rate REAL DEFAULT 7.50,
@@ -77,6 +78,7 @@ export function initDatabase() {
       phone TEXT NOT NULL,
       email TEXT,
       address TEXT,
+      security_pin TEXT DEFAULT '1234',
       is_emergency_contact INTEGER DEFAULT 1,
       is_authorized_pickup INTEGER DEFAULT 1
     );
@@ -92,6 +94,7 @@ export function initDatabase() {
       status TEXT NOT NULL DEFAULT 'expected',
       pickup_by TEXT,
       notes TEXT,
+      signature_confirmed INTEGER DEFAULT 0,
       UNIQUE(child_id, date)
     );
 
@@ -142,6 +145,68 @@ export function initDatabase() {
       status TEXT NOT NULL DEFAULT 'pending',
       issued_at TEXT NOT NULL,
       paid_at TEXT
+    );
+
+    -- 1. Activities Feed (Fil de vie & moments crèche)
+    CREATE TABLE IF NOT EXISTS activities_feed (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      caption TEXT NOT NULL,
+      section_id INTEGER REFERENCES sections(id),
+      author_name TEXT NOT NULL,
+      category TEXT NOT NULL DEFAULT 'eveil',
+      photo_emoji TEXT NOT NULL DEFAULT '🎨',
+      likes_count INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );
+
+    -- 2. Vaccinations (Carnet vaccinal officiel France - 11 vaccins)
+    CREATE TABLE IF NOT EXISTS vaccinations (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      child_id INTEGER NOT NULL REFERENCES children(id) ON DELETE CASCADE,
+      vaccine_name TEXT NOT NULL,
+      dose_number INTEGER NOT NULL DEFAULT 1,
+      administered_at TEXT,
+      next_due_date TEXT,
+      is_mandatory INTEGER DEFAULT 1,
+      status TEXT NOT NULL DEFAULT 'a_jour'
+    );
+
+    -- 3. Announcements (Messagerie & Alertes Direction)
+    CREATE TABLE IF NOT EXISTS announcements (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      content TEXT NOT NULL,
+      priority TEXT NOT NULL DEFAULT 'info',
+      target_section_id INTEGER REFERENCES sections(id),
+      author TEXT NOT NULL,
+      pinned INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );
+
+    -- 4. Weekly Menu (Semainier des repas & Matrice allergènes)
+    CREATE TABLE IF NOT EXISTS weekly_menu (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      day_of_week TEXT NOT NULL UNIQUE,
+      starter TEXT NOT NULL,
+      main_course TEXT NOT NULL,
+      side_dish TEXT,
+      veggie_option TEXT,
+      dessert TEXT NOT NULL,
+      afternoon_snack TEXT NOT NULL,
+      allergens TEXT,
+      is_bio INTEGER DEFAULT 1
+    );
+
+    -- 5. Development Milestones (Jalons d'éveil & Pédagogie)
+    CREATE TABLE IF NOT EXISTS development_milestones (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      child_id INTEGER NOT NULL REFERENCES children(id) ON DELETE CASCADE,
+      domain TEXT NOT NULL,
+      milestone_title TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'en_cours',
+      achieved_at TEXT,
+      educator_notes TEXT
     );
   `);
 }

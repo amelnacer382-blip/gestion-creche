@@ -19,6 +19,7 @@ export interface Guardian {
   phone: string;
   email?: string;
   address?: string;
+  security_pin?: string;
   is_emergency_contact: number | boolean;
   is_authorized_pickup: number | boolean;
 }
@@ -37,6 +38,7 @@ export interface Child {
   medical_notes?: string;
   doctor_name?: string;
   doctor_phone?: string;
+  security_pin?: string;
   status: string;
   contract_hours_per_week: number;
   hourly_rate: number;
@@ -49,6 +51,8 @@ export interface Child {
   guardians?: Guardian[];
   recent_logs?: DailyLog[];
   recent_invoices?: Invoice[];
+  vaccinations?: Vaccination[];
+  milestones?: Milestone[];
 }
 
 export interface AttendanceRecord {
@@ -62,9 +66,11 @@ export interface AttendanceRecord {
   status: 'present' | 'expected' | 'departed' | 'absent_justified' | 'absent_unjustified';
   pickup_by?: string | null;
   notes?: string | null;
+  signature_confirmed?: number;
   first_name: string;
   last_name: string;
   avatar_emoji: string;
+  security_pin?: string;
   allergies?: string;
   diet?: string;
   section_id: number;
@@ -190,4 +196,65 @@ export interface DashboardStats {
     present_count: number;
     staff_count: number;
   }>;
+}
+
+export interface ActivityFeedItem {
+  id: number;
+  title: string;
+  caption: string;
+  section_id: number | null;
+  section_name?: string;
+  section_color?: string;
+  author_name: string;
+  category: 'motricite' | 'creativite' | 'eveil' | 'plein_air' | 'repas' | 'musique';
+  photo_emoji: string;
+  likes_count: number;
+  created_at: string;
+}
+
+export interface WeeklyMenuItem {
+  id: number;
+  day_of_week: string;
+  starter: string;
+  main_course: string;
+  side_dish?: string;
+  veggie_option?: string;
+  dessert: string;
+  afternoon_snack: string;
+  allergens?: string;
+  is_bio: number;
+}
+
+export interface Announcement {
+  id: number;
+  title: string;
+  content: string;
+  priority: 'urgent' | 'important' | 'info';
+  target_section_id: number | null;
+  target_section_name?: string;
+  target_section_color?: string;
+  author: string;
+  pinned: number;
+  created_at: string;
+}
+
+export interface Vaccination {
+  id: number;
+  child_id: number;
+  vaccine_name: string;
+  dose_number: number;
+  administered_at?: string;
+  next_due_date?: string;
+  is_mandatory: number;
+  status: 'a_jour' | 'rappel_requis' | 'non_fait';
+}
+
+export interface Milestone {
+  id: number;
+  child_id: number;
+  domain: string;
+  milestone_title: string;
+  status: 'acquis' | 'en_cours' | 'a_decouvrir';
+  achieved_at?: string;
+  educator_notes?: string;
 }

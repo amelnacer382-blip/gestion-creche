@@ -1,52 +1,56 @@
-# 🧸 P'tits Pas — Logiciel de Gestion de Crèche & Micro-Crèche
+# 🧸 P'tits Pas Pro Suite — Plateforme Complète de Gestion de Crèche & Micro-Crèche
 
-Système complet, moderne et conforme à la réglementation française (PMI, Décret Petite Enfance et barèmes CAF) pour la gestion quotidienne d'une crèche ou micro-crèche.
+Suite logicielle de référence inspirée des meilleurs systèmes de gestion de crèches (Brightwheel, Famly, Kidizz, Meeko) et conforme aux normes réglementaires françaises (PMI, Décret Petite Enfance, HACCP et barèmes CAF Pajeemploi / CMG).
 
 ---
 
-## 🌟 Fonctionnalités Principales
+## 🌟 Modules & Fonctionnalités Clés
 
-### 1. 📊 Tableau de Bord & Indicateurs en Temps Réel
-- **Présences en direct** : nombre d'enfants présents, attendus, départs validés et absences.
-- **Baromètre légal des ratios d'encadrement** : calcul en temps réel du respect des quotas réglementaires par section (alerte immédiate en cas de sous-effectif).
-- **Alertes Médicales & PAI** : affichage prioritaire des allergies alimentaires et protocoles d'urgence pour les enfants actuellement accueillis.
-- **Aperçu financier** : montants facturés, factures en attente d'encaissement et règlements du mois.
+### 1. 📊 Tableau de Bord & Baromètre des Ratios Légaux
+- **Présences en direct** : compteur en temps réel des enfants accueillis, attendus, départs et absences.
+- **Ratios PMI réglementaires** : calcul instantané du taux d'encadrement par section (*Bébés : max 1 pour 5 non-marcheurs*, *Moyens/Grands : max 1 pour 8 marcheurs*).
+- **Radar d'alertes PAI & Santé** : protocoles d'urgence et allergies alimentaires affichés en priorité pour les enfants présents.
+- **Menu du jour & Horaires** : affichage du repas du midi (100% Bio) et timeline des temps forts de la journée.
 
-### 2. 👶 Enfants & Familles
-- **Dossiers d'admission complets** : identité, date de naissance, calcul automatique de l'âge et assignation par section (*Bébés*, *Moyens*, *Grands*).
-- **Fiches médicales** : allergies, intolérances, régimes alimentaires (*Standard*, *Sans lactose*, *Végétarien*, *Sans gluten*, *Sans porc*), PAI et coordonnées du médecin traitant.
-- **Contacts d'urgence & Sorties autorisées** : liste des parents et tiers autorisés avec vérification stricte lors du départ.
-- **Inscription rapide** : formulaire complet avec conditions contractuelles (forfait horaire hebdomadaire et tarif horaire).
+### 2. ⏱️ Pointage & Borne d'Accueil Tactile Sécurisée
+- **Mode Borne / Tablette Murale** : grandes tuiles tactiles ergonomiques conçues pour l'écran tactile à l'entrée de la crèche.
+- **Code PIN de Sécurité Parent** : clavier PIN tactile virtuel (4 chiffres) validant l'identité lors du départ de l'enfant.
+- **Contrôle d'autorisation de sortie** : liste déroulante des personnes expressément autorisées par les parents.
+- **Compteur de durée de garde** : calcul en temps réel du temps passé en crèche (ex. *Présent depuis 4h 15m*).
 
-### 3. ⏱️ Pointage & Présences
-- **Pointage 1-clic** : horodatage automatique de l'arrivée et du départ réel.
-- **Contrôle de sécurité à la sortie** : sélection et validation de la personne autorisée venue chercher l'enfant.
-- **Gestion des absences** : enregistrement des absences justifiées (certificat médical, maladie) ou non-justifiées.
-- **Filtres par statut** : Tous, Présents, Attendus, Partis, Absents.
+### 3. 📸 Fil de Vie & Moments Crèche (*Nouveau*)
+- **Flux d'activités en direct** : partage de photos et d'anecdotes d'éveil avec les familles.
+- **Catégorisation thématique** : *Arts & Peinture 🎨*, *Motricité & Jeux 🧗‍♂️*, *Éveil Musical 🎵*, *Jardin & Nature 🌱*, *Contes & Doudous 📚*.
+- **Réactions & Likes** : interaction sociale bienveillante entre éducatrices et parents.
 
-### 4. 📖 Cahier de Transmission Quotidien
-- **Carnet de liaison numérique** à destination de l'équipe et des familles.
-- **Humeur du jour** : sélection visuelle (*Très joyeux*, *Calme & Serein*, *Plein d'énergie*, *Chagrin / Ému*, *Fatigué*).
-- **Repas & Biberons** : quantités bues, repas du midi et goûters.
-- **Sommeil & Siestes** : heures d'endormissement, durée et qualité du réveil.
-- **Hygiène & Changes** : nombre de couches, selles et propreté.
-- **Activités d'éveil** : motricité, peinture, comptines, jeux d'extérieur.
-- **Observations & signature** de l'éducatrice référente.
+### 4. 🥗 Semainier des Repas & Matrice d'Allergènes (*Nouveau*)
+- **Menu complet sur 5 jours** (Lundi au Vendredi) avec Entrée, Plat Protéiné, Accompagnement, Option Végétarienne, Dessert et Goûter de 15h30.
+- **Matrice HACCP & Allergènes** : repérage clair du gluten, lactose, fruits à coque, poisson, céleri, etc.
 
-### 5. 👥 Personnel & Surveillance des Ratios Légaux
-- **Roster d'équipe** : Éducatrices de Jeunes Enfants (EJE), Auxiliaires de Puériculture, animatrices CAP Petite Enfance (AEPE) et directrice.
-- **Bouton d'état "En poste"** : bascule en un clic permettant d'actualiser instantanément les ratios disponibles.
-- **Règles légales intégrées** :
-  - *Section Bébés (non-marcheurs)* : ratio légal de **1 encadrant pour 5 enfants**.
-  - *Sections Moyens / Grands (marcheurs)* : ratio légal de **1 encadrant pour 8 enfants**.
+### 5. 📢 Messagerie & Alertes aux Familles (*Nouveau*)
+- **Centre de diffusion** : publication d'annonces classées par priorité (*Urgent 🚨*, *Important 🔔*, *Info générale ℹ️*).
+- **Ciblage par section ou général** : messages destinés à toute la crèche ou spécifiquement aux Bébés, Moyens ou Grands.
+- **Épinglage prioritaire** : alertes sanitaires (varicelle, bronchiolite, canicule) fixées en tête de lecture.
 
-### 6. 💶 Facturation & Contrats d'Accueil
-- **Calcul automatisé** :
-  - Forfait mensuel basé sur le volume horaire contractuel.
-  - Détection et calcul des heures de dépassement (majorées à +25%).
-  - Facturation unitaire des repas et collations.
-- **Gestion des statuts** : émission, suivi des factures en attente, validation des règlements reçus.
-- **Bordereau imprimable** : récapitulatif détaillé prêt pour l'envoi aux familles et aux organismes CAF/Pajeemploi.
+### 6. 👶 Enfants & Familles + 💉 Carnet Vaccinal & 🏆 Jalons d'Éveil
+- **Dossiers complets** : identité, section, alimentation, PAI, médecin traitant et contacts d'urgence avec appel 1-clic.
+- **Carnet Vaccinal Officiel (11 vaccins obligatoires en France)** : DTP, Coqueluche, Hib, Hépatite B, Pneumocoque, Méningocoque C, ROR avec suivi des doses et rappels.
+- **Jalons d'Éveil Pédagogiques** : validation individualisée des acquisitions motrices, de langage, d'autonomie et de socialisation.
+- **Suivi des transitions d'âge** : alertes automatiques à l'approche du passage vers la section supérieure.
+
+### 7. 📖 Cahier de Transmission Quotidien
+- **Carnet de liaison numérique** : humeur du jour, biberons/repas, sommeil & siestes, changes, activités et observations de l'éducatrice.
+- **Aperçu Fiche Parentale Mobile** : rendu smartphone reproduisant l'application parentale reçue le soir.
+- **Préréglages rapides 1-clic** : boutons d'insertion rapide pour biberons (180ml, 210ml), sieste apaisée et apprentissage de la propreté.
+
+### 8. 👥 Personnel & Plannings
+- **Roster complet** : Directrice EJE, Auxiliaires de Puériculture, Animatrices CAP AEPE, Agent de restauration.
+- **Bascule "En poste" en 1 clic** : actualisation dynamique immédiate des ratios légaux de la structure.
+
+### 9. 💶 Facturation & Contrats d'Accueil
+- **Calculateur automatisé** : forfait mensuel régulier, majoration des heures supplémentaires (+25%) et décompte des repas.
+- **Simulation Aide CAF / CMG** : estimation de la prise en charge jusqu'à 85% selon les barèmes de la Caisse d'Allocations Familiales.
+- **Facture Officielle Imprimable / PDF** : document normalisé avec mentions légales, SIRET, N° d'agrément PMI et attestation pour la déclaration Pajeemploi.
 
 ---
 
@@ -56,75 +60,42 @@ Système complet, moderne et conforme à la réglementation française (PMI, Dé
 gestion-creche/
 ├── backend/
 │   ├── src/
-│   │   ├── db/              # Base SQLite (bun:sqlite), schéma & seeder
-│   │   ├── routes/          # Endpoints REST (children, attendance, dailyLogs, staff, billing, stats)
+│   │   ├── db/              # Base SQLite (bun:sqlite, mode WAL) & seeder enrichi
+│   │   ├── routes/          # REST (children, attendance, dailyLogs, staff, billing, feed, menu, announcements, vaccinations, milestones)
 │   │   └── index.ts         # Serveur Express sur port 5050
-│   ├── data/creche.db       # Base de données locale SQLite (WAL mode)
 │   ├── test-api.ts          # Suite de tests d'intégration automatisés
 │   └── package.json
 │
 ├── frontend/
 │   ├── src/
-│   │   ├── components/      # Navbar, Dashboard, ChildrenView, AttendanceView, etc.
-│   │   ├── api.ts           # Client API TypeScript typé
-│   │   ├── types.ts         # Interfaces de données
-│   │   ├── App.tsx          # Composant racine & navigation
-│   │   └── main.tsx
-│   ├── vite.config.ts       # Proxy /api vers http://localhost:5050
-│   ├── tailwind.config.js
+│   │   ├── components/      # Navbar, Dashboard, Attendance (PIN pad), Feed, WeeklyMenu, Announcements, Children (Vaccins/Jalons), DailyLogs, Staff, Billing
+│   │   ├── api.ts           # Client API TypeScript complet
+│   │   ├── types.ts         # Modèles de données typés
+│   │   └── App.tsx          # Navigation par onglets & intégration globale
+│   ├── vite.config.ts       # Proxy /api vers 5050 et support hôtes distants
 │   └── package.json
-│
-└── package.json             # Scripts racine du projet
 ```
-
-- **Frontend** : React 18, TypeScript, Tailwind CSS, Lucide Icons, Vite.
-- **Backend** : Node.js / Bun, Express 4, TypeScript, `bun:sqlite` (SQLite 3 embarqué ultra-rapide avec mode WAL).
-- **Base de données** : SQLite avec tables normalisées (`sections`, `children`, `guardians`, `attendance`, `daily_logs`, `staff`, `invoices`).
 
 ---
 
-## 🚀 Démarrage Rapide
+## 🚀 Démarrage
 
-### Prérequis
-- [Bun](https://bun.sh/) ou Node.js (>= 20)
-
-### 1. Démarrer le Backend
+### Backend :
 ```bash
 cd backend
 bun run dev
+# Écoute sur http://localhost:5050
 ```
-Le serveur démarre sur **http://localhost:5050**.
 
-*(Pour réinitialiser ou peupler la base avec les données de démonstration : `bun run seed`)*
-
-### 2. Démarrer le Frontend
+### Frontend :
 ```bash
 cd frontend
 bun run dev
+# Écoute sur http://localhost:5173
 ```
-L'application web est accessible sur **http://localhost:5173**.
 
-### 3. Lancer les tests d'intégration de l'API
+### Tests d'intégration automatisés :
 ```bash
 cd backend
-bun test-api.ts
+bun run ./test-api.ts
 ```
-
-### 4. Build de production
-```bash
-cd frontend && bun run build
-cd ../backend && bun run build
-```
-
----
-
-## 📋 Données de Démonstration Incluses
-
-L'application démarre directement avec un jeu de données réaliste :
-- **3 sections** : Les Bébés (Poussins), Les Moyens (Explorateurs), Les Grands (Aventuriers).
-- **14 enfants** avec dossiers complets, allergies (APLV, arachides, gluten), régimes et PAI.
-- **21 fiches parents et personnes autorisées** avec numéros de téléphone et coordonnées d'urgence.
-- **Pointage du jour** avec enfants présents, attendus, déjà partis et absents.
-- **Transmissions complètes** (repas, siestes, motricité, changes).
-- **7 membres d'équipe** (Directrice, EJE, Auxiliaires, CAP AEPE).
-- **Factures réelles** de la période courante et précédente avec décompte des heures et repas.
