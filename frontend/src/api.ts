@@ -11,7 +11,9 @@ import {
   WeeklyMenuItem,
   Announcement,
   Vaccination,
-  Milestone
+  Milestone,
+  LiaisonMessage,
+  Reminder
 } from './types';
 
 const BASE_URL = '/api';
@@ -217,7 +219,7 @@ export async function updateInvoiceStatus(id: number, status: 'pending' | 'paid'
   return res.json();
 }
 
-// === NEW HIGH-END MODULES API ===
+// === ACTIVITIES FEED ===
 
 export async function fetchFeed(sectionId?: number): Promise<ActivityFeedItem[]> {
   const url = sectionId ? `${BASE_URL}/feed?section_id=${sectionId}` : `${BASE_URL}/feed`;
@@ -242,11 +244,15 @@ export async function likeFeedItem(id: number): Promise<ActivityFeedItem> {
   return res.json();
 }
 
+// === WEEKLY MENU & ALLERGENS ===
+
 export async function fetchWeeklyMenu(): Promise<WeeklyMenuItem[]> {
   const res = await fetch(`${BASE_URL}/weekly-menu`);
   if (!res.ok) throw new Error('Erreur de chargement du menu');
   return res.json();
 }
+
+// === ANNOUNCEMENTS ===
 
 export async function fetchAnnouncements(): Promise<Announcement[]> {
   const res = await fetch(`${BASE_URL}/announcements`);
@@ -270,6 +276,8 @@ export async function deleteAnnouncement(id: number): Promise<{ success: boolean
   return res.json();
 }
 
+// === VACCINATIONS & MILESTONES ===
+
 export async function fetchVaccinations(childId: number): Promise<Vaccination[]> {
   const res = await fetch(`${BASE_URL}/vaccinations/child/${childId}`);
   if (!res.ok) throw new Error('Erreur de chargement des vaccins');
@@ -292,22 +300,67 @@ export async function fetchMilestones(childId: number): Promise<Milestone[]> {
   return res.json();
 }
 
-export async function createMilestone(data: Partial<Milestone>): Promise<Milestone> {
-  const res = await fetch(`${BASE_URL}/milestones`, {
+// === LIAISON MESSAGES (Carnet de liaison interactif Parents <-> Crèche) ===
+
+export async function fetchLiaisonMessages(childId: number): Promise<LiaisonMessage[]> {
+  const res = await fetch(`${BASE_URL}/liaison/child/${childId}`);
+  if (!res.ok) throw new Error('Erreur de chargement des messages de liaison');
+  return res.json();
+}
+
+export async function sendLiaisonMessage(data: Partial<LiaisonMessage>): Promise<LiaisonMessage> {
+  const res = await fetch(`${BASE_URL}/liaison`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data)
   });
-  if (!res.ok) throw new Error('Erreur lors de l\'enregistrement du jalon');
+  if (!res.ok) throw new Error('Erreur lors de l\'envoi du message de liaison');
   return res.json();
 }
 
-export async function updateMilestone(id: number, data: Partial<Milestone>): Promise<Milestone> {
-  const res = await fetch(`${BASE_URL}/milestones/${id}`, {
-    method: 'PUT',
+export async function markLiaisonRead(id: number): Promise<LiaisonMessage> {
+  const res = await fetch(`${BASE_URL}/liaison/${id}/read`, { method: 'PUT' });
+  if (!res.ok) throw new Error('Erreur lors du marquage comme lu');
+  return res.json();
+}
+
+export async function fetchUnreadLiaisonCount(): Promise<{ unread_count: number }> {
+  const res = await fetch(`${BASE_URL}/liaison/unread`);
+  if (!res.ok) throw new Error('Erreur de chargement des messages non lus');
+  return res.json();
+}
+
+// === REMINDERS (Rappels couches, vaccins, fournitures) ===
+
+export async function fetchReminders(childId?: number, status?: string, category?: string): Promise<Reminder[]> {
+  const params = new URLSearchParams();
+  if (childId) params.append('child_id', childId.toString());
+  if (status) params.append('status', status);
+  if (category) params.append('category', category);
+
+  const res = await fetch(`${BASE_URL}/reminders?${params.toString()}`);
+  if (!res.ok) throw new Error('Erreur de chargement des rappels');
+  return res.json();
+}
+
+export async function createReminder(data: Partial<Reminder>): Promise<Reminder> {
+  const res = await fetch(`${BASE_URL}/reminders`, {
+    method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data)
   });
-  if (!res.ok) throw new Error('Erreur lors de la mise à jour du jalon');
+  if (!res.ok) throw new Error('Erreur lors de la création du rappel');
+  return res.json();
+}
+
+export async function toggleReminderStatus(id: number): Promise<Reminder> {
+  const res = await fetch(`${BASE_URL}/reminders/${id}/status`, { method: 'PUT' });
+  if (!res.ok) throw new Error('Erreur lors de la mise à jour du rappel');
+  return res.json();
+}
+
+export async function deleteReminder(id: number): Promise<{ success: boolean }> {
+  const res = await fetch(`${BASE_URL}/reminders/${id}`, { method: 'DELETE' });
+  if (!res.ok) throw new Error('Erreur lors de la suppression du rappel');
   return res.json();
 }

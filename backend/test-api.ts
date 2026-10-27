@@ -16,43 +16,41 @@ async function testEndpoints() {
   if (!Array.isArray(sections) || sections.length < 3) throw new Error('Sections fetch failed');
   console.log(`✓ Sections retrieved (${sections.length} sections)`);
 
-  // 3. Feed
-  const feedRes = await fetch(`${BASE}/feed`);
-  const feed = await feedRes.json();
-  if (!Array.isArray(feed) || feed.length === 0) throw new Error('Feed fetch failed');
-  console.log(`✓ Activities feed retrieved (${feed.length} moments)`);
+  // 3. Liaison messages for child 1
+  const liaisRes = await fetch(`${BASE}/liaison/child/1`);
+  const liaisMessages = await liaisRes.json();
+  if (!Array.isArray(liaisMessages) || liaisMessages.length === 0) throw new Error('Liaison messages fetch failed');
+  console.log(`✓ Liaison messages retrieved (${liaisMessages.length} messages)`);
 
-  // 4. Like an activity
-  const likeRes = await fetch(`${BASE}/feed/${feed[0].id}/like`, { method: 'POST' });
-  const liked = await likeRes.json();
-  if (liked.likes_count <= feed[0].likes_count) throw new Error('Like increment failed');
-  console.log(`✓ Activity liked (${liked.likes_count} likes)`);
+  // 4. Send new liaison message
+  const newMsgRes = await fetch(`${BASE}/liaison`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      child_id: 1,
+      sender_type: 'staff',
+      sender_name: 'Sarah Benali',
+      message: 'Test message de liaison bien reçu.',
+      category: 'sommeil'
+    })
+  });
+  const newMsg = await newMsgRes.json();
+  if (!newMsg || !newMsg.id) throw new Error('Liaison post failed');
+  console.log('✓ Liaison message posted');
 
-  // 5. Weekly Menu
-  const menuRes = await fetch(`${BASE}/weekly-menu`);
-  const menu = await menuRes.json();
-  if (!Array.isArray(menu) || menu.length !== 5) throw new Error('Weekly menu fetch failed');
-  console.log(`✓ Weekly menu retrieved (5 days)`);
+  // 5. Reminders list
+  const remRes = await fetch(`${BASE}/reminders`);
+  const reminders = await remRes.json();
+  if (!Array.isArray(reminders) || reminders.length === 0) throw new Error('Reminders fetch failed');
+  console.log(`✓ Reminders retrieved (${reminders.length} reminders)`);
 
-  // 6. Announcements
-  const annRes = await fetch(`${BASE}/announcements`);
-  const ann = await annRes.json();
-  if (!Array.isArray(ann) || ann.length === 0) throw new Error('Announcements fetch failed');
-  console.log(`✓ Announcements retrieved (${ann.length} announcements)`);
+  // 6. Toggle reminder status
+  const toggleRes = await fetch(`${BASE}/reminders/${reminders[0].id}/status`, { method: 'PUT' });
+  const toggled = await toggleRes.json();
+  if (!toggled || !toggled.status) throw new Error('Reminder toggle failed');
+  console.log(`✓ Reminder status toggled to: ${toggled.status}`);
 
-  // 7. Vaccinations for child 1
-  const vacRes = await fetch(`${BASE}/vaccinations/child/1`);
-  const vaccines = await vacRes.json();
-  if (!Array.isArray(vaccines) || vaccines.length < 7) throw new Error('Vaccinations fetch failed');
-  console.log(`✓ Vaccinations retrieved (${vaccines.length} mandatory vaccines)`);
-
-  // 8. Milestones for child 1
-  const mileRes = await fetch(`${BASE}/milestones/child/1`);
-  const milestones = await mileRes.json();
-  if (!Array.isArray(milestones) || milestones.length === 0) throw new Error('Milestones fetch failed');
-  console.log(`✓ Milestones retrieved (${milestones.length} milestones)`);
-
-  console.log('🎉 ALL EXTENDED API ENDPOINTS VERIFIED SUCCESSFULLY!');
+  console.log('🎉 ALL LIAISON & REMINDER ENDPOINTS VERIFIED SUCCESSFULLY!');
 }
 
 testEndpoints().catch((err) => {

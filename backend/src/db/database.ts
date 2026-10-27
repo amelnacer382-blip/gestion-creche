@@ -147,7 +147,6 @@ export function initDatabase() {
       paid_at TEXT
     );
 
-    -- 1. Activities Feed (Fil de vie & moments crèche)
     CREATE TABLE IF NOT EXISTS activities_feed (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       title TEXT NOT NULL,
@@ -160,7 +159,6 @@ export function initDatabase() {
       created_at TEXT DEFAULT CURRENT_TIMESTAMP
     );
 
-    -- 2. Vaccinations (Carnet vaccinal officiel France - 11 vaccins)
     CREATE TABLE IF NOT EXISTS vaccinations (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       child_id INTEGER NOT NULL REFERENCES children(id) ON DELETE CASCADE,
@@ -172,7 +170,6 @@ export function initDatabase() {
       status TEXT NOT NULL DEFAULT 'a_jour'
     );
 
-    -- 3. Announcements (Messagerie & Alertes Direction)
     CREATE TABLE IF NOT EXISTS announcements (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       title TEXT NOT NULL,
@@ -184,7 +181,6 @@ export function initDatabase() {
       created_at TEXT DEFAULT CURRENT_TIMESTAMP
     );
 
-    -- 4. Weekly Menu (Semainier des repas & Matrice allergènes)
     CREATE TABLE IF NOT EXISTS weekly_menu (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       day_of_week TEXT NOT NULL UNIQUE,
@@ -198,7 +194,6 @@ export function initDatabase() {
       is_bio INTEGER DEFAULT 1
     );
 
-    -- 5. Development Milestones (Jalons d'éveil & Pédagogie)
     CREATE TABLE IF NOT EXISTS development_milestones (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       child_id INTEGER NOT NULL REFERENCES children(id) ON DELETE CASCADE,
@@ -207,6 +202,34 @@ export function initDatabase() {
       status TEXT NOT NULL DEFAULT 'en_cours',
       achieved_at TEXT,
       educator_notes TEXT
+    );
+
+    -- 6. Liaison Messages (Carnet de liaison interactif Parents <-> Crèche)
+    CREATE TABLE IF NOT EXISTS liaison_messages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      child_id INTEGER NOT NULL REFERENCES children(id) ON DELETE CASCADE,
+      sender_type TEXT NOT NULL, -- 'parent' ou 'staff'
+      sender_name TEXT NOT NULL,
+      message TEXT NOT NULL,
+      category TEXT NOT NULL DEFAULT 'autre', -- 'sante', 'sommeil', 'recuperation', 'alimentation', 'fourniture', 'autre'
+      read_by_staff INTEGER DEFAULT 0,
+      read_by_parent INTEGER DEFAULT 1,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );
+
+    -- 7. Reminders (Rappels couches, vaccins, doudou, certificats, rendez-vous)
+    CREATE TABLE IF NOT EXISTS reminders (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      child_id INTEGER NOT NULL REFERENCES children(id) ON DELETE CASCADE,
+      title TEXT NOT NULL,
+      description TEXT,
+      category TEXT NOT NULL DEFAULT 'fourniture', -- 'fourniture', 'sante_vaccin', 'administratif', 'horaire', 'facture'
+      priority TEXT NOT NULL DEFAULT 'normal', -- 'urgent', 'important', 'normal'
+      due_date TEXT,
+      status TEXT NOT NULL DEFAULT 'pending', -- 'pending', 'resolved'
+      created_by TEXT NOT NULL DEFAULT 'Équipe crèche',
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      resolved_at TEXT
     );
   `);
 }

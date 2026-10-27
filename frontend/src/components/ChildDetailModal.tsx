@@ -19,10 +19,20 @@ import {
   Award,
   CheckCircle2,
   Clock4,
-  Plus
+  Plus,
+  MessageSquare,
+  Bell,
+  Package
 } from 'lucide-react';
-import { fetchChildDetail, fetchVaccinations, fetchMilestones, updateVaccination } from '../api';
-import { Child, Vaccination, Milestone } from '../types';
+import { 
+  fetchChildDetail, 
+  fetchVaccinations, 
+  fetchMilestones, 
+  updateVaccination,
+  fetchLiaisonMessages,
+  fetchReminders
+} from '../api';
+import { Child, Vaccination, Milestone, LiaisonMessage, Reminder } from '../types';
 
 interface ChildDetailModalProps {
   childId: number | null;
@@ -38,7 +48,9 @@ export const ChildDetailModal: React.FC<ChildDetailModalProps> = ({
   const [child, setChild] = useState<Child | null>(null);
   const [vaccines, setVaccines] = useState<Vaccination[]>([]);
   const [milestones, setMilestones] = useState<Milestone[]>([]);
-  const [activeTab, setActiveTab] = useState<'profile' | 'vaccines' | 'milestones'>('profile');
+  const [liaisonMessages, setLiaisonMessages] = useState<LiaisonMessage[]>([]);
+  const [reminders, setReminders] = useState<Reminder[]>([]);
+  const [activeTab, setActiveTab] = useState<'profile' | 'vaccines' | 'milestones' | 'liaison'>('profile');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -47,12 +59,16 @@ export const ChildDetailModal: React.FC<ChildDetailModalProps> = ({
     Promise.all([
       fetchChildDetail(childId),
       fetchVaccinations(childId),
-      fetchMilestones(childId)
+      fetchMilestones(childId),
+      fetchLiaisonMessages(childId),
+      fetchReminders(childId)
     ])
-      .then(([childData, vacData, mileData]) => {
+      .then(([childData, vacData, mileData, liaisData, remData]) => {
         setChild(childData);
         setVaccines(vacData);
         setMilestones(mileData);
+        setLiaisonMessages(liaisData);
+        setReminders(remData);
       })
       .catch(console.error)
       .finally(() => setLoading(false));
@@ -121,10 +137,10 @@ export const ChildDetailModal: React.FC<ChildDetailModalProps> = ({
             </div>
 
             {/* Sub-tabs header */}
-            <div className="flex border-b border-slate-100 px-6 pt-2 bg-slate-50/50 text-xs font-bold gap-2">
+            <div className="flex border-b border-slate-100 px-6 pt-2 bg-slate-50/50 text-xs font-bold gap-1.5 overflow-x-auto no-scrollbar">
               <button
                 onClick={() => setActiveTab('profile')}
-                className={`py-2.5 px-3 border-b-2 transition-all flex items-center gap-1.5 ${
+                className={`py-2.5 px-3 border-b-2 whitespace-nowrap transition-all flex items-center gap-1.5 ${
                   activeTab === 'profile'
                     ? 'border-rose-600 text-rose-600'
                     : 'border-transparent text-slate-500 hover:text-slate-900'
@@ -134,8 +150,19 @@ export const ChildDetailModal: React.FC<ChildDetailModalProps> = ({
                 <span>Dossier & Famille</span>
               </button>
               <button
+                onClick={() => setActiveTab('liaison')}
+                className={`py-2.5 px-3 border-b-2 whitespace-nowrap transition-all flex items-center gap-1.5 ${
+                  activeTab === 'liaison'
+                    ? 'border-rose-600 text-rose-600'
+                    : 'border-transparent text-slate-500 hover:text-slate-900'
+                }`}
+              >
+                <MessageSquare className="w-4 h-4" />
+                <span>Liaison & Rappels ({liaisonMessages.length + reminders.filter((r) => r.status === 'pending').length})</span>
+              </button>
+              <button
                 onClick={() => setActiveTab('vaccines')}
-                className={`py-2.5 px-3 border-b-2 transition-all flex items-center gap-1.5 ${
+                className={`py-2.5 px-3 border-b-2 whitespace-nowrap transition-all flex items-center gap-1.5 ${
                   activeTab === 'vaccines'
                     ? 'border-rose-600 text-rose-600'
                     : 'border-transparent text-slate-500 hover:text-slate-900'
@@ -146,14 +173,14 @@ export const ChildDetailModal: React.FC<ChildDetailModalProps> = ({
               </button>
               <button
                 onClick={() => setActiveTab('milestones')}
-                className={`py-2.5 px-3 border-b-2 transition-all flex items-center gap-1.5 ${
+                className={`py-2.5 px-3 border-b-2 whitespace-nowrap transition-all flex items-center gap-1.5 ${
                   activeTab === 'milestones'
                     ? 'border-rose-600 text-rose-600'
                     : 'border-transparent text-slate-500 hover:text-slate-900'
                 }`}
               >
                 <Award className="w-4 h-4" />
-                <span>Jalons d'Éveil ({milestones.filter((m) => m.status === 'acquis').length})</span>
+                <span>Jalons ({milestones.filter((m) => m.status === 'acquis').length})</span>
               </button>
             </div>
 
@@ -260,7 +287,75 @@ export const ChildDetailModal: React.FC<ChildDetailModalProps> = ({
                 </div>
               )}
 
-              {/* TAB 2: VACCINATIONS */}
+              {/* TAB 2: LIAISON & RAPPELS */}
+              {activeTab === 'liaison' && (
+                <div className="space-y-5 text-xs">
+                  {/* Active Reminders for this child */}
+                  <div>
+                    <h4 className="font-black text-slate-900 mb-2 flex items-center gap-1.5 text-sm">
+                      <Bell className="w-4 h-4 text-amber-600" />
+                      <span>Rappels & Fournitures en cours pour cet enfant</span>
+                    </h4>
+
+                    {reminders.filter((r) => r.status === 'pending').length === 0 ? (
+                      <p className="text-slate-400 italic bg-slate-50 p-3 rounded-2xl border border-slate-200">
+                        Aucun rappel en attente pour {child.first_name}.
+                      </p>
+                    ) : (
+                      <div className="space-y-2">
+                        {reminders.filter((r) => r.status === 'pending').map((r) => (
+                          <div key={r.id} className="p-3 bg-amber-50 rounded-2xl border border-amber-200 flex items-start justify-between gap-3">
+                            <div>
+                              <p className="font-black text-amber-950">{r.title}</p>
+                              {r.description && <p className="text-slate-600 mt-0.5">{r.description}</p>}
+                              {r.due_date && <p className="text-[10px] text-amber-700 mt-1">Échéance : {r.due_date}</p>}
+                            </div>
+                            <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-200 text-amber-900">
+                              {r.category}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Liaison messages thread */}
+                  <div className="pt-3 border-t border-slate-200">
+                    <h4 className="font-black text-slate-900 mb-2 flex items-center gap-1.5 text-sm">
+                      <MessageSquare className="w-4 h-4 text-teal-600" />
+                      <span>Historique du carnet de liaison avec les parents</span>
+                    </h4>
+
+                    {liaisonMessages.length === 0 ? (
+                      <p className="text-slate-400 italic bg-slate-50 p-3 rounded-2xl border border-slate-200">
+                        Aucun message de liaison enregistré pour le moment.
+                      </p>
+                    ) : (
+                      <div className="space-y-2.5 max-h-[260px] overflow-y-auto pr-1">
+                        {liaisonMessages.map((msg) => {
+                          const isParent = msg.sender_type === 'parent';
+
+                          return (
+                            <div key={msg.id} className={`p-3 rounded-2xl border ${
+                              isParent ? 'bg-emerald-50/70 border-emerald-200 text-emerald-950' : 'bg-rose-50/70 border-rose-200 text-rose-950'
+                            }`}>
+                              <div className="flex items-center justify-between font-bold text-[11px] mb-1">
+                                <span>{msg.sender_name}</span>
+                                <span className="text-[10px] opacity-70">
+                                  {new Date(msg.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+                                </span>
+                              </div>
+                              <p className="leading-relaxed">{msg.message}</p>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 3: VACCINATIONS */}
               {activeTab === 'vaccines' && (
                 <div className="space-y-4">
                   <div className="p-3.5 bg-sky-50 rounded-2xl border border-sky-200 text-xs text-sky-900 leading-relaxed font-medium">
@@ -297,7 +392,7 @@ export const ChildDetailModal: React.FC<ChildDetailModalProps> = ({
                 </div>
               )}
 
-              {/* TAB 3: MILESTONES */}
+              {/* TAB 4: MILESTONES */}
               {activeTab === 'milestones' && (
                 <div className="space-y-4">
                   <div className="p-3.5 bg-amber-50 rounded-2xl border border-amber-200 text-xs text-amber-900 font-medium">

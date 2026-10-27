@@ -53,6 +53,8 @@ export interface Child {
   recent_invoices?: Invoice[];
   vaccinations?: Vaccination[];
   milestones?: Milestone[];
+  reminders?: Reminder[];
+  liaison_messages?: LiaisonMessage[];
 }
 
 export interface AttendanceRecord {
@@ -257,4 +259,38 @@ export interface Milestone {
   status: 'acquis' | 'en_cours' | 'a_decouvrir';
   achieved_at?: string;
   educator_notes?: string;
+}
+
+export interface LiaisonMessage {
+  id: number;
+  child_id: number;
+  first_name?: string;
+  last_name?: string;
+  avatar_emoji?: string;
+  section_name?: string;
+  sender_type: 'parent' | 'staff';
+  sender_name: string;
+  message: string;
+  category: 'sante' | 'sommeil' | 'recuperation' | 'alimentation' | 'fourniture' | 'autre';
+  read_by_staff: number;
+  read_by_parent: number;
+  created_at: string;
+}
+
+export interface Reminder {
+  id: number;
+  child_id: number;
+  first_name: string;
+  last_name: string;
+  avatar_emoji: string;
+  section_name: string;
+  title: string;
+  description?: string;
+  category: 'fourniture' | 'sante_vaccin' | 'administratif' | 'horaire' | 'facture';
+  priority: 'urgent' | 'important' | 'normal';
+  due_date?: string;
+  status: 'pending' | 'resolved';
+  created_by: string;
+  created_at: string;
+  resolved_at?: string;
 }

@@ -5,6 +5,8 @@ export function seed() {
 
   // Clear existing
   db.exec(`
+    DELETE FROM reminders;
+    DELETE FROM liaison_messages;
     DELETE FROM development_milestones;
     DELETE FROM weekly_menu;
     DELETE FROM announcements;
@@ -148,7 +150,7 @@ export function seed() {
     insertLog.run(...l);
   }
 
-  console.log('🌱 Seeding activities feed (Fil de vie)...');
+  console.log('🌱 Seeding activities feed...');
   const insertFeed = db.prepare(`
     INSERT INTO activities_feed (title, caption, section_id, author_name, category, photo_emoji, likes_count)
     VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -166,7 +168,7 @@ export function seed() {
     insertFeed.run(...f);
   }
 
-  console.log('🌱 Seeding weekly menu (Semainier des repas)...');
+  console.log('🌱 Seeding weekly menu...');
   const insertMenu = db.prepare(`
     INSERT INTO weekly_menu (day_of_week, starter, main_course, side_dish, veggie_option, dessert, afternoon_snack, allergens, is_bio)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -184,7 +186,7 @@ export function seed() {
     insertMenu.run(...m);
   }
 
-  console.log('🌱 Seeding announcements (Alertes direction & familles)...');
+  console.log('🌱 Seeding announcements...');
   const insertAnnouncement = db.prepare(`
     INSERT INTO announcements (title, content, priority, target_section_id, author, pinned)
     VALUES (?, ?, ?, ?, ?, ?)
@@ -194,7 +196,7 @@ export function seed() {
   insertAnnouncement.run('Prévention Hivernale & Épidémies 🩺', 'Plusieurs cas de bronchiolite et de toux ont été signalés. Merci de signaler toute fièvre matinale avant l\'arrivée.', 'urgent', null, 'Émilie Dupont (Directrice)', 1);
   insertAnnouncement.run('Sortie Médiathèque pour les Grands 📖', 'Mardi matin, la section des Aventuriers se rend à la médiathèque de quartier. Pensez à prévoir des chaussures adaptées.', 'info', 3, 'Thomas Rousseau', 0);
 
-  console.log('🌱 Seeding vaccinations (Carnet vaccinal officiel)...');
+  console.log('🌱 Seeding vaccinations...');
   const insertVaccine = db.prepare(`
     INSERT INTO vaccinations (child_id, vaccine_name, dose_number, administered_at, next_due_date, is_mandatory, status)
     VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -202,7 +204,6 @@ export function seed() {
 
   const vaccineList = ['DTP (Diphtérie-Tétanos-Polio)', 'Coqueluche', 'Haemophilus influenzae b (Hib)', 'Hépatite B', 'Pneumocoque', 'Méningocoque C', 'ROR (Rougeole-Oreillons-Rubéole)'];
 
-  // Seed vaccination records for children
   for (let cId = 1; cId <= 14; cId++) {
     for (const vName of vaccineList) {
       const isUpToDate = !(cId === 3 && vName.includes('ROR')) && !(cId === 7 && vName.includes('Méningocoque'));
@@ -218,28 +219,73 @@ export function seed() {
     }
   }
 
-  console.log('🌱 Seeding development milestones (Jalons d\'éveil)...');
+  console.log('🌱 Seeding development milestones...');
   const insertMilestone = db.prepare(`
-    INSERT INTO milestones: development_milestones (child_id, domain, milestone_title, status, achieved_at, educator_notes)
+    INSERT INTO development_milestones (child_id, domain, milestone_title, status, achieved_at, educator_notes)
     VALUES (?, ?, ?, ?, ?, ?)
-  `.replace('milestones: ', ''));
+  `);
 
   const milestonesData = [
     [1, 'Motricité globale', 'Se retourne ventre/dos avec aisance', 'acquis', '2026-09-10', 'Très tonique sur le tapis d\'éveil'],
     [1, 'Motricité fine', 'Attrape volontairement un hochet sonore', 'acquis', '2026-10-02', 'Bonne préhension palmaire'],
     [1, 'Langage', 'Gazouillis en réponse aux voix familières', 'en_cours', null, 'S\'exprime beaucoup avec Sarah'],
-
     [5, 'Motricité globale', 'Marche acquise et montée sur bloc mousse', 'acquis', '2026-08-20', 'Équilibre stable et dynamique'],
     [5, 'Autonomie', 'Boit seul au verre d\'apprentissage', 'acquis', '2026-09-15', 'Gère bien les quantités sans renverser'],
-    [5, 'Socialisation', 'Partage les jouets et invite un camarade', 'en_cours', null, 'Progrès constants lors du jeu libre'],
-
     [10, 'Langage', 'Formule des phrases complètes sujet-verbe-complément', 'acquis', '2026-07-10', 'Vocabulaire très riche'],
-    [10, 'Autonomie', 'Propreté de jour 100% acquise', 'acquis', '2026-08-15', 'Demande spontanément pour aller aux toilettes'],
-    [10, 'Motricité fine', 'Tient les ciseaux à bouts ronds et découpe du papier', 'acquis', '2026-10-01', 'Grande concentration lors des ateliers']
+    [10, 'Autonomie', 'Propreté de jour 100% acquise', 'acquis', '2026-08-15', 'Demande spontanément pour aller aux toilettes']
   ];
 
   for (const m of milestonesData) {
     insertMilestone.run(...m);
+  }
+
+  // === NEW SEEDING: LIAISON MESSAGES (Carnet de liaison interactif Parents <-> Crèche) ===
+  console.log('🌱 Seeding liaison messages (Carnet de liaison)...');
+  const insertLiaison = db.prepare(`
+    INSERT INTO liaison_messages (child_id, sender_type, sender_name, message, category, read_by_staff, read_by_parent)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  const liaisonData = [
+    // Léo Martin
+    [1, 'parent', 'Sophie Martin (Maman)', 'Bonjour à l\'équipe ! Léo a été réveillé à 4h cette nuit à cause d\'une poussée dentaire. Il risque d\'avoir besoin d\'un dodo un peu plus long ce matin.', 'sommeil', 1, 1],
+    [1, 'staff', 'Sarah Benali (Auxiliaire)', 'Bonjour Sophie, bien noté ! On va lui proposer son doudou plus tôt et lui accorder un temps de repos au calme. Très bonne journée.', 'sommeil', 1, 1],
+    
+    // Chloé Bernard
+    [2, 'parent', 'Antoine Bernard (Père)', 'Bonjour, Chloé a pris sa dose de doliprane à 07h15 pour ses gencives. Merci de nous appeler si elle semble gênée ou si la fièvre réapparaît.', 'sante', 1, 1],
+    [2, 'staff', 'Sarah Benali (Auxiliaire)', 'C\'est bien noté Antoine ! Nous surveillons attentivement et nous vérifierons sa température avant le déjeuner.', 'sante', 1, 1],
+
+    // Arthur Fournier
+    [11, 'parent', 'Delphine Fournier (Mère)', 'Information pour ce soir : c\'est son grand-père Jacques qui viendra le chercher à 17h15.', 'recuperation', 1, 1],
+    [11, 'staff', 'Thomas Rousseau (Auxiliaire)', 'Bonjour Delphine, message bien reçu et transmis à l\'équipe de fermeture. Bonne journée !', 'recuperation', 1, 1],
+
+    // Gabriel Robert
+    [5, 'parent', 'Valérie Robert (Mère)', 'Nous avons déposé une nouvelle boîte d\'antihistaminiques dans son casier de pharmacie ce matin (date limite 2027).', 'sante', 1, 1]
+  ];
+
+  for (const l of liaisonData) {
+    insertLiaison.run(...l);
+  }
+
+  // === NEW SEEDING: REMINDERS (Rappels couches, vaccins, doudous, certificats) ===
+  console.log('🌱 Seeding reminders (Rappels fournitures & santé)...');
+  const insertReminder = db.prepare(`
+    INSERT INTO reminders (child_id, title, description, category, priority, due_date, status, created_by)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  const remindersData = [
+    [1, 'Prévoir un paquet de couches taille 4', 'Il ne reste que 3 couches dans son casier individuel pour la semaine.', 'fourniture', 'important', '2026-10-28', 'pending', 'Sarah Benali'],
+    [2, 'Ordonnance PAI lait spécial à renouveler', 'Le protocole d\'accueil individualisé expire à la fin du mois.', 'sante_vaccin', 'urgent', '2026-10-31', 'pending', 'Émilie Dupont'],
+    [3, 'Certificat médical de reprise d\'accueil', 'Fournir le certificat du pédiatre suite à l\'épisode de fièvre.', 'administratif', 'important', '2026-10-29', 'pending', 'Émilie Dupont'],
+    [5, 'Contrôle péremption trousse EpiPen', 'Vérification semestrielle effectuée : boîte rouge conforme.', 'sante_vaccin', 'normal', '2026-10-20', 'resolved', 'Camille Moreau'],
+    [7, 'Rappel vaccin Méningocoque C', 'Dose de rappel prévue avant les 18 mois de l\'enfant.', 'sante_vaccin', 'important', '2026-11-15', 'pending', 'Émilie Dupont'],
+    [8, 'Apporter une tenue complète de rechange', 'Prévoir body, pantalon et chaussettes adaptées à la saison.', 'fourniture', 'normal', '2026-10-30', 'pending', 'Camille Moreau'],
+    [11, 'Doudou de secours pour le dortoir', 'Un deuxième doudou serait précieux pour faciliter l\'endormissement.', 'fourniture', 'normal', '2026-10-30', 'pending', 'Thomas Rousseau']
+  ];
+
+  for (const r of remindersData) {
+    insertReminder.run(...r);
   }
 
   console.log('🌱 Seeding invoices...');
@@ -267,7 +313,7 @@ export function seed() {
     insertInvoice.run(...inv);
   }
 
-  console.log('✅ Base de données enrichie et peuplée avec succès !');
+  console.log('✅ Base de données enrichie avec liaison et rappels avec succès !');
 }
 
 if (import.meta.main || process.argv[1]?.includes('seed')) {

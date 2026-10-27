@@ -16,10 +16,14 @@ import {
   CheckCircle2,
   ChevronRight,
   Flame,
-  Award
+  Award,
+  Bell,
+  MessageSquare,
+  Package,
+  Syringe
 } from 'lucide-react';
-import { fetchStats, fetchRatios } from '../api';
-import { DashboardStats, RatioReport } from '../types';
+import { fetchStats, fetchRatios, fetchReminders } from '../api';
+import { DashboardStats, RatioReport, Reminder } from '../types';
 
 interface DashboardViewProps {
   onNavigate: (tab: string) => void;
@@ -28,16 +32,19 @@ interface DashboardViewProps {
 export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [ratios, setRatios] = useState<RatioReport | null>(null);
+  const [reminders, setReminders] = useState<Reminder[]>([]);
   const [loading, setLoading] = useState(true);
 
   const loadData = async () => {
     try {
-      const [statsData, ratiosData] = await Promise.all([
+      const [statsData, ratiosData, remindersData] = await Promise.all([
         fetchStats(),
-        fetchRatios()
+        fetchRatios(),
+        fetchReminders(undefined, 'pending')
       ]);
       setStats(statsData);
       setRatios(ratiosData);
+      setReminders(remindersData);
     } catch (err) {
       console.error(err);
     } finally {
@@ -111,10 +118,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
               <ArrowRight className="w-4 h-4" />
             </button>
             <button
-              onClick={() => onNavigate('logs')}
+              onClick={() => onNavigate('liaison')}
               className="px-4 py-2.5 bg-white/15 hover:bg-white/25 text-white rounded-2xl text-xs sm:text-sm font-bold backdrop-blur-md transition-all flex items-center gap-2"
             >
-              <span>Cahier de transmission</span>
+              <MessageSquare className="w-4 h-4" />
+              <span>Carnet de liaison</span>
             </button>
           </div>
         </div>
@@ -200,6 +208,45 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
           <p className="mt-2 text-[11px] text-slate-400 font-medium">Repas décomptés automatiquement</p>
         </div>
       </div>
+
+      {/* RAPPELS & FOURNITURES DIRECT WIDGET */}
+      {reminders.length > 0 && (
+        <div className="bg-amber-50/70 rounded-3xl p-5 border border-amber-200/80 shadow-xs">
+          <div className="flex items-center justify-between pb-3 border-b border-amber-200/60">
+            <div className="flex items-center gap-2">
+              <Bell className="w-5 h-5 text-amber-600" />
+              <h3 className="font-extrabold text-slate-900 text-base">
+                Rappels & Fournitures à Récupérer auprès des Familles
+              </h3>
+            </div>
+            <button
+              onClick={() => onNavigate('reminders')}
+              className="text-xs font-bold text-amber-800 hover:text-amber-900 flex items-center gap-1"
+            >
+              <span>Voir les {reminders.length} rappels</span>
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-3.5">
+            {reminders.slice(0, 3).map((rem) => (
+              <div key={rem.id} className="bg-white p-3.5 rounded-2xl border border-amber-200 shadow-2xs flex items-start gap-3">
+                <span className="text-2xl shrink-0">{rem.avatar_emoji}</span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-black text-slate-900 text-xs truncate">{rem.first_name} {rem.last_name}</h4>
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-800">
+                      {rem.category}
+                    </span>
+                  </div>
+                  <p className="text-xs font-bold text-slate-700 mt-1 truncate">{rem.title}</p>
+                  {rem.due_date && <p className="text-[10px] text-slate-400 mt-0.5">Échéance : {rem.due_date}</p>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Legal Ratio Radar & Section Occupancy */}
       <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs">
@@ -339,7 +386,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
 
           <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
             <span>Allergènes affichés en cuisine selon la réglementation HACCP</span>
-            <span className="text-slate-600 font-bold">Cuisiné sur place</span>
+            <button onClick={() => onNavigate('menu')} className="text-rose-600 font-bold hover:underline">
+              Voir le semainier complet &rarr;
+            </button>
           </div>
         </div>
 
@@ -372,9 +421,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
         </div>
       </div>
 
-      {/* Bottom Grid: Medical Alerts & Financial / Quick Invoices */}
+      {/* Bottom Grid: Medical Alerts & Financial */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Medical & PAI Alerts for currently present children */}
+        {/* Medical & PAI Alerts */}
         <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs">
           <div className="flex items-center justify-between pb-3 border-b border-slate-100">
             <div className="flex items-center gap-2">

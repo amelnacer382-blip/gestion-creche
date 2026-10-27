@@ -22937,7 +22937,7 @@ var require_lib3 = __commonJS(function(exports, module) {
 });
 
 // src/index.ts
-var import_express13 = __toESM(require_express());
+var import_express15 = __toESM(require_express());
 var import_cors = __toESM(require_lib3());
 
 // src/db/database.ts
@@ -23077,7 +23077,6 @@ function initDatabase() {
       paid_at TEXT
     );
 
-    -- 1. Activities Feed (Fil de vie & moments crèche)
     CREATE TABLE IF NOT EXISTS activities_feed (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       title TEXT NOT NULL,
@@ -23090,7 +23089,6 @@ function initDatabase() {
       created_at TEXT DEFAULT CURRENT_TIMESTAMP
     );
 
-    -- 2. Vaccinations (Carnet vaccinal officiel France - 11 vaccins)
     CREATE TABLE IF NOT EXISTS vaccinations (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       child_id INTEGER NOT NULL REFERENCES children(id) ON DELETE CASCADE,
@@ -23102,7 +23100,6 @@ function initDatabase() {
       status TEXT NOT NULL DEFAULT 'a_jour'
     );
 
-    -- 3. Announcements (Messagerie & Alertes Direction)
     CREATE TABLE IF NOT EXISTS announcements (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       title TEXT NOT NULL,
@@ -23114,7 +23111,6 @@ function initDatabase() {
       created_at TEXT DEFAULT CURRENT_TIMESTAMP
     );
 
-    -- 4. Weekly Menu (Semainier des repas & Matrice allergènes)
     CREATE TABLE IF NOT EXISTS weekly_menu (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       day_of_week TEXT NOT NULL UNIQUE,
@@ -23128,7 +23124,6 @@ function initDatabase() {
       is_bio INTEGER DEFAULT 1
     );
 
-    -- 5. Development Milestones (Jalons d'éveil & Pédagogie)
     CREATE TABLE IF NOT EXISTS development_milestones (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       child_id INTEGER NOT NULL REFERENCES children(id) ON DELETE CASCADE,
@@ -23137,6 +23132,34 @@ function initDatabase() {
       status TEXT NOT NULL DEFAULT 'en_cours',
       achieved_at TEXT,
       educator_notes TEXT
+    );
+
+    -- 6. Liaison Messages (Carnet de liaison interactif Parents <-> Crèche)
+    CREATE TABLE IF NOT EXISTS liaison_messages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      child_id INTEGER NOT NULL REFERENCES children(id) ON DELETE CASCADE,
+      sender_type TEXT NOT NULL, -- 'parent' ou 'staff'
+      sender_name TEXT NOT NULL,
+      message TEXT NOT NULL,
+      category TEXT NOT NULL DEFAULT 'autre', -- 'sante', 'sommeil', 'recuperation', 'alimentation', 'fourniture', 'autre'
+      read_by_staff INTEGER DEFAULT 0,
+      read_by_parent INTEGER DEFAULT 1,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );
+
+    -- 7. Reminders (Rappels couches, vaccins, doudou, certificats, rendez-vous)
+    CREATE TABLE IF NOT EXISTS reminders (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      child_id INTEGER NOT NULL REFERENCES children(id) ON DELETE CASCADE,
+      title TEXT NOT NULL,
+      description TEXT,
+      category TEXT NOT NULL DEFAULT 'fourniture', -- 'fourniture', 'sante_vaccin', 'administratif', 'horaire', 'facture'
+      priority TEXT NOT NULL DEFAULT 'normal', -- 'urgent', 'important', 'normal'
+      due_date TEXT,
+      status TEXT NOT NULL DEFAULT 'pending', -- 'pending', 'resolved'
+      created_by TEXT NOT NULL DEFAULT 'Équipe crèche',
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      resolved_at TEXT
     );
   `);
 }
@@ -23976,12 +23999,130 @@ milestonesRouter.put("/:id", (req, res) => {
   res.json(updated);
 });
 
+// src/routes/liaison.ts
+var import_express13 = __toESM(require_express());
+var liaisonRouter = import_express13.Router();
+liaisonRouter.get("/child/:childId", (req, res) => {
+  const childId = Number(req.params.childId);
+  const messages = db.prepare(`
+    SELECT l.*, c.first_name, c.last_name, c.avatar_emoji, s.name as section_name
+    FROM liaison_messages l
+    JOIN children c ON l.child_id = c.id
+    LEFT JOIN sections s ON c.section_id = s.id
+    WHERE l.child_id = ?
+    ORDER BY l.created_at ASC
+  `).all(childId);
+  res.json(messages);
+});
+liaisonRouter.get("/unread", (_req, res) => {
+  const unreadRow = db.prepare(`
+    SELECT COUNT(*) as count 
+    FROM liaison_messages 
+    WHERE sender_type = 'parent' AND read_by_staff = 0
+  `).get();
+  res.json({ unread_count: unreadRow?.count || 0 });
+});
+liaisonRouter.post("/", (req, res) => {
+  const { child_id, sender_type, sender_name, message, category } = req.body;
+  if (!child_id || !message || !sender_name) {
+    return res.status(400).json({ error: "Champs requis manquants" });
+  }
+  const isParent = sender_type === "parent";
+  db.prepare(`
+    INSERT INTO liaison_messages (child_id, sender_type, sender_name, message, category, read_by_staff, read_by_parent)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).run(Number(child_id), sender_type || "parent", sender_name, message, category || "autre", isParent ? 0 : 1, isParent ? 1 : 0);
+  const lastId = db.prepare(`SELECT last_insert_rowid() as id`).get();
+  const created = db.prepare(`SELECT * FROM liaison_messages WHERE id = ?`).get(lastId?.id || 1);
+  res.status(201).json(created);
+});
+liaisonRouter.put("/:id/read", (req, res) => {
+  const id = Number(req.params.id);
+  db.prepare(`UPDATE liaison_messages SET read_by_staff = 1 WHERE id = ?`).run(id);
+  const updated = db.prepare(`SELECT * FROM liaison_messages WHERE id = ?`).get(id);
+  res.json(updated);
+});
+
+// src/routes/reminders.ts
+var import_express14 = __toESM(require_express());
+var remindersRouter = import_express14.Router();
+remindersRouter.get("/", (req, res) => {
+  const { child_id, status, category } = req.query;
+  let sql = `
+    SELECT 
+      r.*,
+      c.first_name,
+      c.last_name,
+      c.avatar_emoji,
+      c.section_id,
+      s.name as section_name,
+      s.color as section_color
+    FROM reminders r
+    JOIN children c ON r.child_id = c.id
+    LEFT JOIN sections s ON c.section_id = s.id
+    WHERE 1=1
+  `;
+  const params = [];
+  if (child_id) {
+    sql += ` AND r.child_id = ?`;
+    params.push(Number(child_id));
+  }
+  if (status && typeof status === "string") {
+    sql += ` AND r.status = ?`;
+    params.push(status);
+  }
+  if (category && typeof category === "string") {
+    sql += ` AND r.category = ?`;
+    params.push(category);
+  }
+  sql += ` ORDER BY 
+    CASE WHEN r.status = 'pending' THEN 0 ELSE 1 END,
+    CASE WHEN r.priority = 'urgent' THEN 0 WHEN r.priority = 'important' THEN 1 ELSE 2 END,
+    r.due_date ASC, 
+    r.id DESC`;
+  const reminders = db.prepare(sql).all(params);
+  res.json(reminders);
+});
+remindersRouter.post("/", (req, res) => {
+  const { child_id, title, description, category, priority, due_date, created_by } = req.body;
+  if (!child_id || !title) {
+    return res.status(400).json({ error: "child_id et title sont requis" });
+  }
+  db.prepare(`
+    INSERT INTO reminders (child_id, title, description, category, priority, due_date, status, created_by)
+    VALUES (?, ?, ?, ?, ?, ?, 'pending', ?)
+  `).run(Number(child_id), title, description || null, category || "fourniture", priority || "normal", due_date || null, created_by || "Équipe crèche");
+  const lastId = db.prepare(`SELECT last_insert_rowid() as id`).get();
+  const created = db.prepare(`SELECT * FROM reminders WHERE id = ?`).get(lastId?.id || 1);
+  res.status(201).json(created);
+});
+remindersRouter.put("/:id/status", (req, res) => {
+  const id = Number(req.params.id);
+  const current = db.prepare(`SELECT status FROM reminders WHERE id = ?`).get(id);
+  if (!current) {
+    return res.status(404).json({ error: "Rappel non trouvé" });
+  }
+  const nextStatus = current.status === "pending" ? "resolved" : "pending";
+  const today = new Date().toISOString().split("T")[0];
+  const resolvedAt = nextStatus === "resolved" ? today : null;
+  db.prepare(`
+    UPDATE reminders SET status = ?, resolved_at = ? WHERE id = ?
+  `).run(nextStatus, resolvedAt, id);
+  const updated = db.prepare(`SELECT * FROM reminders WHERE id = ?`).get(id);
+  res.json(updated);
+});
+remindersRouter.delete("/:id", (req, res) => {
+  const id = Number(req.params.id);
+  db.prepare(`DELETE FROM reminders WHERE id = ?`).run(id);
+  res.json({ success: true });
+});
+
 // src/index.ts
-var app = import_express13.default();
+var app = import_express15.default();
 var PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 5050;
 initDatabase();
 app.use(import_cors.default());
-app.use(import_express13.default.json());
+app.use(import_express15.default.json());
 app.use("/api/sections", sectionsRouter);
 app.use("/api/children", childrenRouter);
 app.use("/api/attendance", attendanceRouter);
@@ -23994,11 +24135,13 @@ app.use("/api/vaccinations", vaccinationsRouter);
 app.use("/api/announcements", announcementsRouter);
 app.use("/api/weekly-menu", menuRouter);
 app.use("/api/milestones", milestonesRouter);
+app.use("/api/liaison", liaisonRouter);
+app.use("/api/reminders", remindersRouter);
 app.get("/api/health", (_req, res) => {
   res.json({
     status: "ok",
     app: "Crèche Facile API",
-    version: "1.2.0",
+    version: "1.3.0",
     timestamp: new Date().toISOString()
   });
 });

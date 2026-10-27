@@ -9,16 +9,19 @@ import { BillingView } from './components/BillingView';
 import { FeedView } from './components/FeedView';
 import { WeeklyMenuView } from './components/WeeklyMenuView';
 import { AnnouncementsView } from './components/AnnouncementsView';
+import { LiaisonView } from './components/LiaisonView';
+import { RemindersView } from './components/RemindersView';
 import { NewChildModal } from './components/NewChildModal';
 import { ChildDetailModal } from './components/ChildDetailModal';
 import { DailyLogModal } from './components/DailyLogModal';
-import { fetchSections, fetchChildren } from './api';
-import { Section, Child } from './types';
+import { fetchSections, fetchChildren, fetchReminders } from './api';
+import { Section, Child, Reminder } from './types';
 
 export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>('dashboard');
   const [sections, setSections] = useState<Section[]>([]);
   const [children, setChildren] = useState<Child[]>([]);
+  const [reminders, setReminders] = useState<Reminder[]>([]);
 
   // Modals state
   const [isNewChildOpen, setIsNewChildOpen] = useState<boolean>(false);
@@ -28,12 +31,14 @@ export const App: React.FC = () => {
 
   const loadBaseData = async () => {
     try {
-      const [sectionsData, childrenData] = await Promise.all([
+      const [sectionsData, childrenData, remindersData] = await Promise.all([
         fetchSections(),
-        fetchChildren()
+        fetchChildren(),
+        fetchReminders(undefined, 'pending')
       ]);
       setSections(sectionsData);
       setChildren(childrenData);
+      setReminders(remindersData);
     } catch (err) {
       console.error(err);
     }
@@ -49,6 +54,7 @@ export const App: React.FC = () => {
   };
 
   const presentCount = children.filter((c) => c.today_status === 'present').length;
+  const pendingRemindersCount = reminders.filter((r) => r.status === 'pending').length;
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-['Plus_Jakarta_Sans',sans-serif]">
@@ -58,6 +64,7 @@ export const App: React.FC = () => {
         setActiveTab={setActiveTab}
         onOpenNewChildModal={() => setIsNewChildOpen(true)}
         presentCount={presentCount}
+        remindersCount={pendingRemindersCount}
       />
 
       {/* Main Content Area */}
@@ -71,6 +78,14 @@ export const App: React.FC = () => {
 
         {activeTab === 'attendance' && (
           <AttendanceView onOpenTransmission={handleOpenTransmission} />
+        )}
+
+        {activeTab === 'liaison' && (
+          <LiaisonView childrenList={children} />
+        )}
+
+        {activeTab === 'reminders' && (
+          <RemindersView childrenList={children} />
         )}
 
         {activeTab === 'feed' && (
@@ -113,7 +128,7 @@ export const App: React.FC = () => {
             <span className="text-slate-400 font-normal">&bull; Plateforme complète de gestion pour crèche & micro-crèche</span>
           </div>
           <div className="text-slate-400">
-            Conforme PMI, Décret Petite Enfance & Déclaration CAF Pajeemploi
+            Liaison Familles &bull; Normes PMI &bull; Décret Petite Enfance &bull; Déclaration CAF Pajeemploi
           </div>
         </div>
       </footer>

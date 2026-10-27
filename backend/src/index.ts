@@ -13,6 +13,8 @@ import { vaccinationsRouter } from './routes/vaccinations';
 import { announcementsRouter } from './routes/announcements';
 import { menuRouter } from './routes/menu';
 import { milestonesRouter } from './routes/milestones';
+import { liaisonRouter } from './routes/liaison';
+import { remindersRouter } from './routes/reminders';
 
 const app = express();
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 5050;
@@ -36,12 +38,14 @@ app.use('/api/vaccinations', vaccinationsRouter);
 app.use('/api/announcements', announcementsRouter);
 app.use('/api/weekly-menu', menuRouter);
 app.use('/api/milestones', milestonesRouter);
+app.use('/api/liaison', liaisonRouter);
+app.use('/api/reminders', remindersRouter);
 
 app.get('/api/health', (_req, res) => {
   res.json({
     status: 'ok',
     app: 'Crèche Facile API',
-    version: '1.2.0',
+    version: '1.3.0',
     timestamp: new Date().toISOString()
   });
 });
