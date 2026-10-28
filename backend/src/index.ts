@@ -1,5 +1,7 @@
 import express from 'express';
 import cors from 'cors';
+import path from 'path';
+import fs from 'fs';
 import { initDatabase } from './db/database';
 import { sectionsRouter } from './routes/sections';
 import { childrenRouter } from './routes/children';
@@ -25,7 +27,7 @@ initDatabase();
 app.use(cors());
 app.use(express.json());
 
-// Routes
+// API Routes
 app.use('/api/sections', sectionsRouter);
 app.use('/api/children', childrenRouter);
 app.use('/api/attendance', attendanceRouter);
@@ -45,10 +47,22 @@ app.get('/api/health', (_req, res) => {
   res.json({
     status: 'ok',
     app: 'Crèche Facile API',
-    version: '1.3.0',
+    version: '1.4.0',
     timestamp: new Date().toISOString()
   });
 });
+
+// Serve frontend dist if available (Production single-port mode)
+const frontendDist = path.resolve(__dirname, '../../frontend/dist');
+if (fs.existsSync(frontendDist)) {
+  app.use(express.static(frontendDist));
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api')) {
+      return next();
+    }
+    res.sendFile(path.join(frontendDist, 'index.html'));
+  });
+}
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Serveur Crèche Facile démarré sur http://localhost:${PORT}`);

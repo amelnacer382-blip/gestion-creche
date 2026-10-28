@@ -22939,6 +22939,8 @@ var require_lib3 = __commonJS(function(exports, module) {
 // src/index.ts
 var import_express15 = __toESM(require_express());
 var import_cors = __toESM(require_lib3());
+import path2 from "path";
+import fs2 from "fs";
 
 // src/db/database.ts
 import { Database } from "bun:sqlite";
@@ -24118,6 +24120,7 @@ remindersRouter.delete("/:id", (req, res) => {
 });
 
 // src/index.ts
+var __dirname = "/home/user/gestion-creche/backend/src";
 var app = import_express15.default();
 var PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 5050;
 initDatabase();
@@ -24141,10 +24144,20 @@ app.get("/api/health", (_req, res) => {
   res.json({
     status: "ok",
     app: "Crèche Facile API",
-    version: "1.3.0",
+    version: "1.4.0",
     timestamp: new Date().toISOString()
   });
 });
+var frontendDist = path2.resolve(__dirname, "../../frontend/dist");
+if (fs2.existsSync(frontendDist)) {
+  app.use(import_express15.default.static(frontendDist));
+  app.get("*", (req, res, next) => {
+    if (req.path.startsWith("/api")) {
+      return next();
+    }
+    res.sendFile(path2.join(frontendDist, "index.html"));
+  });
+}
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`\uD83D\uDE80 Serveur Crèche Facile démarré sur http://localhost:${PORT}`);
 });
