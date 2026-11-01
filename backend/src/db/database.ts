@@ -3,7 +3,11 @@ import path from 'path';
 import fs from 'fs';
 
 // Resolve to fixed backend/data directory
-const dbDir = path.resolve(__dirname, '../../data');
+const dbDir = path.resolve(
+  __dirname.includes('dist')
+    ? path.join(__dirname, '../data')
+    : path.join(__dirname, '../../data')
+);
 const dbPath = path.join(dbDir, 'creche.db');
 
 if (!fs.existsSync(dbDir)) {
