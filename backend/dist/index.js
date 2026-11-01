@@ -22947,7 +22947,7 @@ import { Database } from "bun:sqlite";
 import path from "path";
 import fs from "fs";
 var __dirname = "/home/user/gestion-creche/backend/src/db";
-var dbDir = path.resolve(__dirname, "../../data");
+var dbDir = path.resolve(__dirname.includes("dist") ? path.join(__dirname, "../data") : path.join(__dirname, "../../data"));
 var dbPath = path.join(dbDir, "creche.db");
 if (!fs.existsSync(dbDir)) {
   fs.mkdirSync(dbDir, { recursive: true });
